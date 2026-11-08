@@ -32,7 +32,12 @@ class FileSnapshotStorage(
     override fun getSnapshotFiles(): List<File> {
         val files = timelapseDir
             .listFiles { f -> f.extension == "jpg" }
-            ?.sorted()
+            ?.sortedWith(
+                compareBy<File> {
+                    NAME_REGEX.matchEntire(it.name)?.groupValues?.get(1)?.toLongOrNull()
+                        ?: Long.MAX_VALUE
+                }.thenBy { it.name }
+            )
             ?: emptyList()
         cachedCount.set(files.size)
         return files
