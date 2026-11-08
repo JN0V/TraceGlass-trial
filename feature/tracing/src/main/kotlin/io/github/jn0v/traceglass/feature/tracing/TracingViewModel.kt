@@ -18,6 +18,7 @@ import io.github.jn0v.traceglass.core.session.SessionRepository
 import io.github.jn0v.traceglass.core.session.SettingsRepository
 import io.github.jn0v.traceglass.core.timelapse.CompilationResult
 import io.github.jn0v.traceglass.core.timelapse.ExportResult
+import io.github.jn0v.traceglass.core.timelapse.SnapshotStorage
 import io.github.jn0v.traceglass.core.timelapse.TimelapseSession
 import io.github.jn0v.traceglass.core.timelapse.TimelapseState
 import java.util.concurrent.atomic.AtomicReference
@@ -294,6 +295,31 @@ class TracingViewModel(
         _uiState.update { it.copy(areControlsVisible = !it.areControlsVisible) }
     }
 
+    /** Waits for the next camera frame and saves it; true only if a frame was really saved. */
+    private suspend fun captureSnapshot(
+        analyzer: FrameAnalyzer,
+        storage: SnapshotStorage,
+        index: Int
+    ): Boolean {
+        val saved = kotlinx.coroutines.CompletableDeferred<Boolean>()
+        analyzer.snapshotCallback = { bytes ->
+            saved.complete(
+                try {
+                    storage.saveSnapshot(bytes, index)
+                    true
+                } catch (e: Exception) {
+                    false
+                }
+            )
+        }
+        val result = try {
+            kotlinx.coroutines.withTimeoutOrNull(SNAPSHOT_FRAME_TIMEOUT_MS) { saved.await() }
+        } finally {
+            analyzer.snapshotCallback = null
+        }
+        return result == true
+    }
+
     fun startTimelapse() {
         val storage = snapshotStorage ?: return
         val analyzer = frameAnalyzer ?: return
@@ -310,11 +336,7 @@ class TracingViewModel(
         // Fresh start: drop frames left over from any previous time-lapse
         storage.clear()
 
-        val session = TimelapseSession(onCapture = { index ->
-            analyzer.snapshotCallback = { bytes ->
-                storage.saveSnapshot(bytes, index)
-            }
-        })
+        val session = TimelapseSession(onCapture = { index -> captureSnapshot(analyzer, storage, index) })
         timelapseSession = session
         session.start(viewModelScope)
         observeTimelapseState(session)
@@ -649,11 +671,7 @@ class TracingViewModel(
 
         _uiState.update { it.copy(showTimelapseRestoreDialog = false, pendingTimelapseSnapshotCount = 0) }
 
-        val session = TimelapseSession(onCapture = { index ->
-            analyzer.snapshotCallback = { bytes ->
-                storage.saveSnapshot(bytes, index)
-            }
-        })
+        val session = TimelapseSession(onCapture = { index -> captureSnapshot(analyzer, storage, index) })
         timelapseSession = session
         session.restoreFromExisting(diskCount)
         observeTimelapseState(session)
@@ -844,3 +862,5 @@ class TracingViewModel(
     }
 
 }
+
+private const val SNAPSHOT_FRAME_TIMEOUT_MS = 5000L
