@@ -307,6 +307,9 @@ class TracingViewModel(
             return
         }
 
+        // Fresh start: drop frames left over from any previous time-lapse
+        storage.clear()
+
         val session = TimelapseSession(onCapture = { index ->
             analyzer.snapshotCallback = { bytes ->
                 storage.saveSnapshot(bytes, index)
