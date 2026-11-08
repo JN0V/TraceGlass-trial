@@ -597,14 +597,31 @@ private fun GridOverlay(
                         val minY = minOf(p0.second, p1.second)
                         endpoints[0] = p0.first - minX; endpoints[1] = p0.second - minY
                         endpoints[2] = p1.first - minX; endpoints[3] = p1.second - minY
-                        val bw = maxOf(kotlin.math.abs(p1.first - p0.first), 2f).toInt()
-                        val bh = maxOf(kotlin.math.abs(p1.second - p0.second), 2f).toInt()
+                        val finite = minX.isFinite() && minY.isFinite() &&
+                            endpoints.all { it.isFinite() }
+                        if (!finite) {
+                            // Degenerate mapping (w near 0): draw nothing, never crash.
+                            endpoints.fill(0f)
+                            bounds[0] = 0; bounds[1] = 0
+                            val placeable = measurable.measure(
+                                androidx.compose.ui.unit.Constraints.fixed(0, 0)
+                            )
+                            return@layout layout(constraints.maxWidth, constraints.maxHeight) {
+                                placeable.place(0, 0)
+                            }
+                        }
+                        val limit = 16383f
+                        val bw = kotlin.math.abs(p1.first - p0.first).coerceIn(2f, limit).toInt()
+                        val bh = kotlin.math.abs(p1.second - p0.second).coerceIn(2f, limit).toInt()
                         bounds[0] = bw; bounds[1] = bh
                         val placeable = measurable.measure(
                             androidx.compose.ui.unit.Constraints.fixed(bw, bh)
                         )
                         layout(constraints.maxWidth, constraints.maxHeight) {
-                            placeable.place(minX.toInt(), minY.toInt())
+                            placeable.place(
+                                minX.coerceIn(-limit, limit).toInt(),
+                                minY.coerceIn(-limit, limit).toInt()
+                            )
                         }
                     }
                     .drawBehind {
