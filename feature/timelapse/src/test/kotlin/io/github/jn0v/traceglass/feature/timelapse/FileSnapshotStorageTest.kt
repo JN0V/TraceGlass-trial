@@ -76,6 +76,24 @@ class FileSnapshotStorageTest {
         }
 
         @Test
+        fun `returns files in numeric order past 9999`() {
+            storage.saveSnapshot(byteArrayOf(1), 9999)
+            storage.saveSnapshot(byteArrayOf(2), 10000)
+            storage.saveSnapshot(byteArrayOf(3), 9998)
+            val names = storage.getSnapshotFiles().map { it.name }
+            assertEquals(
+                listOf("snapshot_9998.jpg", "snapshot_9999.jpg", "snapshot_10000.jpg"),
+                names
+            )
+        }
+
+        @Test
+        fun `nextIndex is 10001 with snapshot 10000 on disk`() {
+            storage.saveSnapshot(byteArrayOf(1), 10000)
+            assertEquals(10001, storage.nextIndex())
+        }
+
+        @Test
         fun `count matches saved snapshots`() {
             assertEquals(0, storage.getSnapshotCount())
             storage.saveSnapshot(byteArrayOf(1), 0)
