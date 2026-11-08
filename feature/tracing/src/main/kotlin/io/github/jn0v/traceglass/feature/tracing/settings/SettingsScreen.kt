@@ -177,7 +177,7 @@ internal fun SettingsContent(
         HorizontalDivider()
 
         ListItem(
-            headlineContent = { Text(stringResource(R.string.settings_grid)) },
+            headlineContent = { Text("Grid") },
             supportingContent = {
                 androidx.compose.foundation.layout.Row(
                     horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp)
@@ -188,11 +188,11 @@ internal fun SettingsContent(
                             onClick = { onGridChanged(option) },
                             label = {
                                 Text(
-                                    stringResource(
+                                    (
                                         when (option) {
-                                            io.github.jn0v.traceglass.core.overlay.CompositionGrid.Off -> R.string.settings_grid_off
-                                            io.github.jn0v.traceglass.core.overlay.CompositionGrid.Thirds -> R.string.settings_grid_thirds
-                                            io.github.jn0v.traceglass.core.overlay.CompositionGrid.Golden -> R.string.settings_grid_golden
+                                            io.github.jn0v.traceglass.core.overlay.CompositionGrid.Off -> "Off"
+                                            io.github.jn0v.traceglass.core.overlay.CompositionGrid.Thirds -> "Thirds"
+                                            io.github.jn0v.traceglass.core.overlay.CompositionGrid.Golden -> "Golden"
                                         }
                                     )
                                 )
