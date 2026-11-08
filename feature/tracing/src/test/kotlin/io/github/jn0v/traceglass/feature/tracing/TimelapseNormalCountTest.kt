@@ -54,6 +54,7 @@ class TimelapseNormalCountTest {
         }
         override fun getSnapshotFiles(): List<File> = saved.toList()
         override fun getSnapshotCount(): Int = saved.size
+        override fun nextIndex(): Int = saved.size
         override fun clear() { saved.clear() }
     }
 

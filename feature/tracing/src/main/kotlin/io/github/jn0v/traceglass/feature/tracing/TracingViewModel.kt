@@ -673,7 +673,7 @@ class TracingViewModel(
 
         val session = TimelapseSession(onCapture = { index -> captureSnapshot(analyzer, storage, index) })
         timelapseSession = session
-        session.restoreFromExisting(diskCount)
+        session.restoreFromExisting(diskCount, storage.nextIndex())
         observeTimelapseState(session)
 
         if (pendingTimelapseResumeRecording) {

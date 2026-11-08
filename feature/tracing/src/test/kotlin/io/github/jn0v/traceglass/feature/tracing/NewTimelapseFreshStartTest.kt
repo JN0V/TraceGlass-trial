@@ -51,6 +51,7 @@ class NewTimelapseFreshStartTest {
         override fun saveSnapshot(jpegData: ByteArray, index: Int): File = File("/fake/snap_$index.jpg")
         override fun getSnapshotFiles(): List<File> = files.toList()
         override fun getSnapshotCount(): Int = files.size
+        override fun nextIndex(): Int = files.size
         override fun clear() { files.clear() }
     }
 

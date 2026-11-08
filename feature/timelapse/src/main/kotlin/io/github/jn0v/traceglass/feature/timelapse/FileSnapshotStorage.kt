@@ -16,7 +16,15 @@ class FileSnapshotStorage(
 
     override fun saveSnapshot(jpegData: ByteArray, index: Int): File {
         val file = File(timelapseDir, "snapshot_%04d.jpg".format(index))
-        file.writeBytes(jpegData)
+        if (!file.createNewFile()) {
+            throw java.io.IOException("Snapshot already exists: ${file.name}")
+        }
+        try {
+            file.writeBytes(jpegData)
+        } catch (e: Exception) {
+            file.delete()
+            throw e
+        }
         cachedCount.updateAndGet { c -> if (c >= 0) c + 1 else c }
         return file
     }
@@ -36,8 +44,19 @@ class FileSnapshotStorage(
         return getSnapshotFiles().size
     }
 
+    override fun nextIndex(): Int {
+        val max = timelapseDir.listFiles()
+            ?.mapNotNull { NAME_REGEX.matchEntire(it.name)?.groupValues?.get(1)?.toIntOrNull() }
+            ?.maxOrNull()
+        return if (max == null) 0 else max + 1
+    }
+
     override fun clear() {
         timelapseDir.listFiles()?.forEach { it.delete() }
         cachedCount.set(0)
+    }
+
+    private companion object {
+        val NAME_REGEX = Regex("""snapshot_(\d{4,})\.jpg""")
     }
 }

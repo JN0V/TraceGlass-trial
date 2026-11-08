@@ -20,6 +20,7 @@ class TimelapseSession(
     val snapshotCount: StateFlow<Int> = _snapshotCount.asStateFlow()
 
     private var captureJob: Job? = null
+    private var nextCaptureIndex: Int? = null
 
     fun start(scope: CoroutineScope) {
         if (_state.value == TimelapseState.RECORDING) return
@@ -45,11 +46,13 @@ class TimelapseSession(
         captureJob = null
         _state.value = TimelapseState.IDLE
         _snapshotCount.value = 0
+        nextCaptureIndex = null
     }
 
-    fun restoreFromExisting(existingCount: Int) {
+    fun restoreFromExisting(existingCount: Int, nextIndex: Int) {
         if (existingCount <= 0) return
         _snapshotCount.value = existingCount
+        nextCaptureIndex = nextIndex
         _state.value = TimelapseState.PAUSED
     }
 
@@ -61,10 +64,11 @@ class TimelapseSession(
         captureJob?.cancel()
         captureJob = scope.launch {
             while (true) {
-                val index = _snapshotCount.value
+                val index = nextCaptureIndex ?: _snapshotCount.value
                 try {
                     if (onCapture(index)) {
-                        _snapshotCount.value = index + 1
+                        _snapshotCount.value = _snapshotCount.value + 1
+                        nextCaptureIndex = index + 1
                     }
                 } catch (e: kotlinx.coroutines.CancellationException) {
                     throw e
