@@ -6,6 +6,8 @@ import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.emptyPreferences
 import androidx.datastore.preferences.core.intPreferencesKey
+import androidx.datastore.preferences.core.stringPreferencesKey
+import io.github.jn0v.traceglass.core.overlay.CompositionGrid
 import android.util.Log
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
@@ -30,7 +32,10 @@ class DataStoreSettingsRepository(
                 audioFeedbackEnabled = prefs[KEY_AUDIO_FEEDBACK] ?: false,
                 breakReminderEnabled = prefs[KEY_BREAK_REMINDER] ?: false,
                 breakReminderIntervalMinutes = prefs[KEY_BREAK_INTERVAL] ?: 30,
-                perspectiveCorrectionEnabled = prefs[KEY_PERSPECTIVE_CORRECTION] ?: true
+                perspectiveCorrectionEnabled = prefs[KEY_PERSPECTIVE_CORRECTION] ?: true,
+                grid = prefs[KEY_GRID]
+                    ?.let { name -> CompositionGrid.entries.firstOrNull { it.name == name } }
+                    ?: CompositionGrid.Off
             )
         }
 
@@ -50,7 +55,12 @@ class DataStoreSettingsRepository(
         dataStore.edit { it[KEY_PERSPECTIVE_CORRECTION] = enabled }
     }
 
+    override suspend fun setGrid(grid: CompositionGrid) {
+        dataStore.edit { it[KEY_GRID] = grid.name }
+    }
+
     companion object {
+        private val KEY_GRID = stringPreferencesKey("settings_grid")
         private val KEY_AUDIO_FEEDBACK = booleanPreferencesKey("settings_audio_feedback")
         private val KEY_BREAK_REMINDER = booleanPreferencesKey("settings_break_reminder")
         private val KEY_BREAK_INTERVAL = intPreferencesKey("settings_break_interval")

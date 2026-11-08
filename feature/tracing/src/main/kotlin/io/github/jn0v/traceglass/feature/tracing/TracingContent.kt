@@ -99,6 +99,7 @@ internal fun TracingContent(
     onColorTintChanged: (ColorTint) -> Unit,
     onToggleInvertedMode: () -> Unit,
     renderMatrixState: State<FloatArray?>,
+    grid: io.github.jn0v.traceglass.core.overlay.CompositionGrid = io.github.jn0v.traceglass.core.overlay.CompositionGrid.Off,
     onOverlayGesture: (centroid: Offset, pan: Offset, zoom: Float, rotation: Float) -> Unit,
     onSetViewDimensions: (Float, Float) -> Unit,
     isSessionActive: Boolean,
@@ -353,6 +354,19 @@ internal fun TracingContent(
                                 canvas.nativeCanvas.save()
                                 canvas.nativeCanvas.concat(matrixObj)
                                 drawContent()
+                                // Grid lines share the image's matrix, so they follow the paper
+                                for (x in grid.verticalLines(size.width)) {
+                                    drawLine(
+                                        androidx.compose.ui.graphics.Color.White,
+                                        Offset(x, 0f), Offset(x, size.height), strokeWidth = 2f
+                                    )
+                                }
+                                for (y in grid.horizontalLines(size.height)) {
+                                    drawLine(
+                                        androidx.compose.ui.graphics.Color.White,
+                                        Offset(0f, y), Offset(size.width, y), strokeWidth = 2f
+                                    )
+                                }
                                 canvas.nativeCanvas.restore()
                             }
                         }

@@ -1,6 +1,7 @@
 package io.github.jn0v.traceglass.feature.tracing
 
 import android.net.Uri
+import io.github.jn0v.traceglass.core.overlay.CompositionGrid
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Color
@@ -47,7 +48,8 @@ data class TracingUiState(
     val showPostCompilationDialog: Boolean = false,
     val showTimelapseRestoreDialog: Boolean = false,
     val pendingTimelapseSnapshotCount: Int = 0,
-    val cameraError: String? = null
+    val cameraError: String? = null,
+    val grid: CompositionGrid = CompositionGrid.Off
 ) {
     val effectiveOpacity: Float
         get() = if (isInvertedMode) 1f - overlayOpacity else overlayOpacity
