@@ -100,63 +100,7 @@ Screen pixels
 
 ## 4. Overlay Transform Pipeline
 
-### 4.1 OverlayTransformCalculator
-
-**Purpose**: Convert detected marker positions into an overlay transformation matrix.
-
-**State lifecycle**:
-1. **Pre-reference** (0-3 markers first seen): Affine fallback (translate/rotate/scale from marker centroid)
-2. **Reference established** (first 4-marker detection): Stores reference corners, computes paper aspect ratio
-3. **Tracking** (subsequent frames): EMA smoothing + progressive degradation
-
-**Progressive degradation**:
-
-| Visible Markers | Strategy | Error Budget |
-|----------------|----------|--------------|
-| 4 | Full homography (DLT 4-point) | <0.1px |
-| 3 | Constrained homography (Newton-Raphson) if f known, else affine delta | <5px at 20° tilt |
-| 2 | Similarity transform (translation + rotation + scale) | <15px |
-| 1 | Translation-only delta | <70px for 5° rotation |
-| 0 | Hold last known position | 0px (frozen) |
-
-**EMA smoothing**: `smooth[id] = lerp(smooth[id], detected[id], 0.12)` per-corner, applied before homography computation.
-
-### 4.2 HomographySolver
-
-**Pure Kotlin, no OpenCV dependency.**
-
-| Method | Algorithm | Input | Output |
-|--------|-----------|-------|--------|
-| `solveHomography` | DLT (8×8 Gaussian elimination) | 4 src→dst point pairs | FloatArray(9) or null |
-| `solveAffine` | 6×6 Gaussian elimination | 3 src→dst point pairs | FloatArray(9) or null |
-| `estimateFocalLength` | Orthogonality + equal-norm constraints | paper+frame coords, cx, cy | Float? |
-| `solveConstrainedHomography` | Newton-Raphson (2 quadratic constraints) | 3 points + f, cx, cy | FloatArray(9) or null |
-| `correctAspectRatio` | Column norm ratio from H | paper+frame coords + f | Float? |
-
-**Focal length auto-estimation**:
-- Requires fronto-parallel reference (`isReferenceRectangular`: edge ratios within 8%)
-- Uses H column orthogonality: `h₁ᵀ·ω·h₂ = 0` where `ω = K⁻ᵀK⁻¹`
-- Equal-norm fallback: `|v₁|² = |v₂|²`
-- Degenerate for near-square paper or horizontal-only tilt (H[6]≈0)
-
-### 4.3 Coordinate Spaces
-
-```
-Frame Space (camera pixels, e.g. 1280×720)
-    │  F2S matrix: pvScale + letterbox offset
-    ▼
-Screen Space (view pixels, e.g. 1080×1920)
-    │  Homography: viewCorners → screenCorners
-    ▼
-View Space (centered overlay rect, paper AR)
-    │  Manual transforms: rotate/scale before H
-    ▼
-Rendered Image
-```
-
-**Two rendering modes**:
-- **Paper-corner mode** (`paperCornersFrame != null` + perspective enabled): `renderMatrix = mOffset × H × mView`
-- **Affine mode**: `renderMatrix = translate × translate(center) × rotate × scale × translate(-center)`
+How marker positions become the overlay matrix — calculator states, progressive degradation, `HomographySolver` and coordinate spaces — is in [Overlay transform pipeline](architecture/overlay-transform.md).
 
 ## 5. Persistence Architecture
 
@@ -182,54 +126,11 @@ Rendered Image
 
 ## 6. Camera Architecture
 
-### 6.1 CameraXManager
-
-**Dual-interface singleton**: Implements `CameraManager` (lifecycle) + `FlashlightController` (torch).
-
-**Camera selection** (`buildWideAngleSelector`):
-1. Enumerate back-facing logical cameras
-2. Extract focal lengths via Camera2 interop
-3. Select camera with **minimum focal length** (widest FOV)
-4. Apply `setWidestZoom(minZoomRatio)` for ultra-wide (e.g. 0.5× on Pixel 9 Pro)
-
-**Lifecycle**:
-- `bindPreview()`: Binds preview + optional ImageAnalysis to lifecycle
-- `unbind()`: Releases camera, keeps executor alive (allows rebind)
-- `close()`: Shuts down executor, idempotent, prevents future binds
-
-**Threading**:
-- `analysisExecutor`: Single-threaded `ExecutorService` for frame processing
-- State flows emitted on main thread
-- Executor survives `unbind()`, destroyed only in `close()`
-
-### 6.2 FrameAnalyzer
-
-**`ImageAnalysis.Analyzer` implementation** in `feature:tracing`.
-
-- Extracts Y-plane `ByteBuffer` + `rowStride` from `ImageProxy`
-- Calls `MarkerDetector.detect()` with rotation from `imageProxy.imageInfo.rotationDegrees`
-- Emits `MarkerResult` via `latestResult: StateFlow`
-- **Snapshot capture**: One-shot `AtomicReference<(ByteArray) -> Unit>` callback, encodes to JPEG (quality 85) on IO dispatcher
+`CameraXManager` (camera selection, lifecycle, threading) and `FrameAnalyzer` are described in [Camera and native architecture](architecture/camera-and-native.md).
 
 ## 7. Native/JNI Architecture
 
-### 7.1 OpenCV Integration
-
-```
-libtraceglass_cv.so
-    ├── JNI_OnLoad: Cache class/method refs (ArrayList, Pair, Float, DetectedMarker, MarkerResult)
-    ├── nativeDetect: Buffer validation → Mat(h,w,CV_8UC1,buf,rowStride) → rotate → detectMarkers → build Java objects
-    └── JNI_OnUnload: Release global refs
-```
-
-**ArUco config**: `DICT_4X4_50` (50 markers, 4×4 bit grid), default `DetectorParameters`
-
-**Security hardening** (CMake):
-- `-fstack-protector-strong`, `-D_FORTIFY_SOURCE=2`
-- `-Wl,-z,relro -Wl,-z,now` (GOT read-only)
-- `-ffile-prefix-map` + `--build-id=none` (F-Droid reproducible builds)
-
-**ProGuard rules**: Keep `MarkerResult`, `DetectedMarker`, `OpenCvMarkerDetector` native methods (JNI uses `FindClass` with FQN).
+The OpenCV JNI library, its ArUco config, CMake hardening and ProGuard rules are described in [Camera and native architecture](architecture/camera-and-native.md).
 
 ## 8. Navigation Architecture
 
@@ -282,76 +183,12 @@ IntentVideoSharer.shareVideo(uri)
 
 ## 10. Testing Architecture
 
-### 10.1 Framework
-
-| Tool | Purpose |
-|------|---------|
-| JUnit 5 (Jupiter) | Test runner, `@Nested`, `@BeforeEach`/`@AfterEach` |
-| MockK | Mocking (used sparingly — prefer fakes) |
-| kotlinx.coroutines.test | `runTest`, `TestDispatcher`, `advanceUntilIdle` |
-| Compose UI Test | `createComposeRule`, UI assertion |
-
-### 10.2 Test Doubles
-
-| Fake | Module | Purpose |
-|------|--------|---------|
-| `FakeCameraManager` | core:camera | Instant bind, no real camera |
-| `FakeFlashlightController` | core:camera | Configurable hasFlashlight |
-| `FakeMarkerDetector` | core:cv | Returns configured results, counts calls |
-| `FakeSessionRepository` | core:session | In-memory DataStore, tracks save/clear counts |
-
-### 10.3 Test Distribution
-
-| Module | Test Files | Notable |
-|--------|-----------|---------|
-| core:camera | 1 (4 tests) | Lifecycle/idempotency |
-| core:cv | 1 (6 tests) | Data class validation |
-| core:overlay | 4 (~80 tests) | Algorithmic correctness, corner estimation |
-| core:session | 3 (23 tests) | Schema sync, persistence |
-| feature:tracing | 6 (~100+ tests) | ViewModel state machine, gestures, timelapse |
-| feature:onboarding | 4 (~20 tests) | Page navigation, walkthrough flow |
-| feature:timelapse | 5 (~30 tests) | Storage, compilation, DI |
-
-### 10.4 Known Testing Patterns
-
-- **viewModelScope + runTest hang**: Infinite loops in viewModelScope prevent runTest from completing. Must cancel ViewModel or use test-injectable dispatchers.
-- **State mutation trap**: When testing hidden corners in a loop, create fresh calculator per iteration to avoid cascading errors from mutated smoothedCorners.
-- **android.graphics.Matrix not available**: Use `MatrixUtils` (pure Kotlin) instead of `android.graphics.Matrix` in ViewModel unit tests.
+Test frameworks, test doubles, test distribution and known testing patterns are in [Testing architecture](architecture/testing.md).
 
 ## 11. Build Architecture
 
-### 11.1 Build Variants
-
-| Variant | Minify | Shrink Resources | ProGuard |
-|---------|--------|-------------------|----------|
-| debug | No | No | No |
-| release | Yes | Yes | optimize.txt + custom rules |
-
-### 11.2 ABI Support
-
-| ABI | Device Type |
-|-----|-------------|
-| arm64-v8a | Modern phones (Pixel, Samsung, OnePlus) |
-| armeabi-v7a | Older 32-bit ARM devices |
-| x86_64 | Emulators (Intel/AMD) |
-
-### 11.3 CI/CD
-
-GitHub Actions (`ci.yml`):
-- Trigger: push to main, PRs
-- Runner: Ubuntu latest, JDK 17 (Temurin)
-- Steps: Gradle wrapper validation → cache → debug build → release build → unit tests → lint
-- Caches: Gradle, OpenCV SDK (SHA256 verified)
+Build variants, ABI support and CI/CD are in [Build and security](architecture/build-and-security.md).
 
 ## 12. Security Measures
 
-| Measure | Location |
-|---------|----------|
-| Cleartext HTTP blocked | `network_security_config.xml` |
-| Stack protector | CMake: `-fstack-protector-strong` |
-| FORTIFY_SOURCE | CMake: `-D_FORTIFY_SOURCE=2` |
-| RELRO + NOW | CMake: `-Wl,-z,relro -Wl,-z,now` |
-| ProGuard/R8 | Release builds: minification + shrinking |
-| JNI class keep | `proguard-rules.pro` in core:cv |
-| No backup | `android:allowBackup="false"` |
-| Buffer validation | JNI: capacity check before Mat construction |
+The table of security measures and where each is set is in [Build and security](architecture/build-and-security.md).
