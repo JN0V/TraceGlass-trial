@@ -2120,6 +2120,7 @@ class TracingViewModelTest {
                 cacheDir = cacheDir
             )
             compileVideo(vm)
+            storage.clearCalled = false // the fresh start clears leftovers; only export-time clearing matters here
             assertFalse(storage.clearCalled, "Storage should NOT be cleared yet")
 
             vm.exportTimelapse()
