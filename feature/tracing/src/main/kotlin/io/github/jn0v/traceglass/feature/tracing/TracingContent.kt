@@ -54,6 +54,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.foundation.background
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.isSpecified
+import androidx.compose.ui.layout.layout
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.draw.drawWithContent
@@ -342,8 +346,9 @@ internal fun TracingContent(
                 // Cache objects to avoid per-draw allocations
                 val matrixObj = remember { android.graphics.Matrix() }
                 val identityValues = remember { MatrixUtils.identity() }
+                val painter = rememberAsyncImagePainter(model = overlayImageUri)
                 Image(
-                    painter = rememberAsyncImagePainter(model = overlayImageUri),
+                    painter = painter,
                     contentDescription = stringResource(R.string.content_desc_overlay_image),
                     modifier = Modifier
                         .fillMaxSize()
@@ -354,25 +359,18 @@ internal fun TracingContent(
                                 canvas.nativeCanvas.save()
                                 canvas.nativeCanvas.concat(matrixObj)
                                 drawContent()
-                                // Grid lines share the image's matrix, so they follow the paper
-                                for (x in grid.verticalLines(size.width)) {
-                                    drawLine(
-                                        androidx.compose.ui.graphics.Color.White,
-                                        Offset(x, 0f), Offset(x, size.height), strokeWidth = 2f
-                                    )
-                                }
-                                for (y in grid.horizontalLines(size.height)) {
-                                    drawLine(
-                                        androidx.compose.ui.graphics.Color.White,
-                                        Offset(0f, y), Offset(size.width, y), strokeWidth = 2f
-                                    )
-                                }
                                 canvas.nativeCanvas.restore()
                             }
                         }
                         .alpha(effectiveOpacity),
                     contentScale = ContentScale.Fit,
                     colorFilter = colorTint.toColorFilter()
+                )
+                // Grid sits outside the alpha layer, on the fitted image rectangle
+                GridOverlay(
+                    grid = grid,
+                    renderMatrixState = renderMatrixState,
+                    imageSize = painter.intrinsicSize
                 )
             }
         }
@@ -539,6 +537,85 @@ internal fun TracingContent(
     DisposableEffect(Unit) {
         onDispose {
             cameraManager.unbind()
+        }
+    }
+}
+
+private fun mapGridPoint(m: FloatArray, x: Float, y: Float): Pair<Float, Float> {
+    val w = m[6] * x + m[7] * y + m[8]
+    return Pair((m[0] * x + m[1] * y + m[2]) / w, (m[3] * x + m[4] * y + m[5]) / w)
+}
+
+/** Tag of every grid line, for tests. */
+internal const val GRID_LINE_TAG = "grid_line"
+
+/**
+ * Draws the grid lines on the fitted image rectangle (ContentScale.Fit inside the
+ * container), each endpoint mapped through the same matrix as the image.
+ * Each line is its own tagged node placed at the bounds of its mapped endpoints.
+ */
+@Composable
+private fun GridOverlay(
+    grid: io.github.jn0v.traceglass.core.overlay.CompositionGrid,
+    renderMatrixState: State<FloatArray?>,
+    imageSize: androidx.compose.ui.geometry.Size
+) {
+    if (grid == io.github.jn0v.traceglass.core.overlay.CompositionGrid.Off) return
+    val identityValues = remember { MatrixUtils.identity() }
+    val count = grid.verticalLines(1f).size + grid.horizontalLines(1f).size
+    Box(modifier = Modifier.fillMaxSize()) {
+        for (i in 0 until count) {
+            val endpoints = remember { FloatArray(4) }
+            val bounds = remember { IntArray(2) }
+            Box(
+                modifier = Modifier
+                    .testTag(GRID_LINE_TAG)
+                    .layout { measurable, constraints ->
+                        val w = constraints.maxWidth.toFloat()
+                        val h = constraints.maxHeight.toFloat()
+                        val known = imageSize.isSpecified && imageSize.width > 0f && imageSize.height > 0f
+                        val scale = if (known) minOf(w / imageSize.width, h / imageSize.height) else 1f
+                        val iw = if (known) imageSize.width * scale else w
+                        val ih = if (known) imageSize.height * scale else h
+                        val left = (w - iw) / 2f
+                        val top = (h - ih) / 2f
+                        val vertical = grid.verticalLines(iw)
+                        val line: List<Float>
+                        val x0: Float; val y0: Float; val x1: Float; val y1: Float
+                        if (i < vertical.size) {
+                            val x = left + vertical[i]
+                            x0 = x; y0 = top; x1 = x; y1 = top + ih
+                        } else {
+                            line = grid.horizontalLines(ih)
+                            val y = top + line[i - vertical.size]
+                            x0 = left; y0 = y; x1 = left + iw; y1 = y
+                        }
+                        val m = renderMatrixState.value ?: identityValues
+                        val p0 = mapGridPoint(m, x0, y0)
+                        val p1 = mapGridPoint(m, x1, y1)
+                        val minX = minOf(p0.first, p1.first)
+                        val minY = minOf(p0.second, p1.second)
+                        endpoints[0] = p0.first - minX; endpoints[1] = p0.second - minY
+                        endpoints[2] = p1.first - minX; endpoints[3] = p1.second - minY
+                        val bw = maxOf(kotlin.math.abs(p1.first - p0.first), 2f).toInt()
+                        val bh = maxOf(kotlin.math.abs(p1.second - p0.second), 2f).toInt()
+                        bounds[0] = bw; bounds[1] = bh
+                        val placeable = measurable.measure(
+                            androidx.compose.ui.unit.Constraints.fixed(bw, bh)
+                        )
+                        layout(constraints.maxWidth, constraints.maxHeight) {
+                            placeable.place(minX.toInt(), minY.toInt())
+                        }
+                    }
+                    .drawBehind {
+                        drawLine(
+                            Color.White,
+                            Offset(endpoints[0], endpoints[1]),
+                            Offset(endpoints[2], endpoints[3]),
+                            strokeWidth = 2f
+                        )
+                    }
+            )
         }
     }
 }
