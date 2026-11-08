@@ -2658,6 +2658,8 @@ private class FakeSnapshotStorage : SnapshotStorage {
     var fakeSnapshotFiles: List<File> = emptyList()
     var fakeSnapshotCount: Int? = null
     var clearCalled: Boolean = false
+    var fakeNextIndex: Int? = null
+    override fun nextIndex(): Int = fakeNextIndex ?: getSnapshotCount()
 
     override fun saveSnapshot(jpegData: ByteArray, index: Int): File {
         savedSnapshots.add(jpegData to index)

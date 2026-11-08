@@ -185,7 +185,7 @@ class TimelapseSessionTest {
         @Test
         fun `restoreFromExisting sets PAUSED with existing count`() = runTest {
             val session = TimelapseSession()
-            session.restoreFromExisting(15)
+            session.restoreFromExisting(15, 15)
             assertEquals(TimelapseState.PAUSED, session.state.value)
             assertEquals(15, session.snapshotCount.value)
         }
@@ -193,7 +193,7 @@ class TimelapseSessionTest {
         @Test
         fun `restoreFromExisting with zero count is no-op`() = runTest {
             val session = TimelapseSession()
-            session.restoreFromExisting(0)
+            session.restoreFromExisting(0, 0)
             assertEquals(TimelapseState.IDLE, session.state.value)
             assertEquals(0, session.snapshotCount.value)
         }
@@ -205,7 +205,7 @@ class TimelapseSessionTest {
                 intervalMs = 1000L,
                 onCapture = { index -> captured.add(index) }
             )
-            session.restoreFromExisting(10)
+            session.restoreFromExisting(10, 10)
             session.resume(this)
             advanceTimeBy(2100)
             assertEquals(listOf(10, 11, 12), captured)
@@ -215,7 +215,7 @@ class TimelapseSessionTest {
         @Test
         fun `restore with negative count is no-op`() = runTest {
             val session = TimelapseSession()
-            session.restoreFromExisting(-5)
+            session.restoreFromExisting(-5, 0)
             assertEquals(TimelapseState.IDLE, session.state.value)
         }
     }
