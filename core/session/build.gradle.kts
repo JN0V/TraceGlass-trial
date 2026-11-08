@@ -8,6 +8,7 @@ android {
 }
 
 dependencies {
+    api(project(":core:overlay"))
     implementation(libs.androidx.datastore.preferences)
     implementation(libs.kotlinx.coroutines.core)
     implementation(libs.koin.android)

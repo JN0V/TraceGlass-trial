@@ -39,4 +39,12 @@ class FakeSettingsRepository : SettingsRepository {
         perspectiveCorrectionSetCount++
         _settingsData.value = _settingsData.value.copy(perspectiveCorrectionEnabled = enabled)
     }
+
+    var gridSetCount: Int = 0
+        private set
+
+    override suspend fun setGrid(grid: io.github.jn0v.traceglass.core.overlay.CompositionGrid) {
+        gridSetCount++
+        _settingsData.value = _settingsData.value.copy(grid = grid)
+    }
 }

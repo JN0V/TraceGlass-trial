@@ -8,4 +8,5 @@ interface SettingsRepository {
     suspend fun setBreakReminderEnabled(enabled: Boolean)
     suspend fun setBreakReminderIntervalMinutes(minutes: Int)
     suspend fun setPerspectiveCorrectionEnabled(enabled: Boolean)
+    suspend fun setGrid(grid: io.github.jn0v.traceglass.core.overlay.CompositionGrid)
 }

@@ -70,6 +70,7 @@ fun SettingsScreen(
             onBreakReminderToggled = viewModel::onBreakReminderToggled,
             onBreakIntervalChanged = viewModel::onBreakIntervalChanged,
             onPerspectiveCorrectionToggled = viewModel::onPerspectiveCorrectionToggled,
+            onGridChanged = viewModel::onGridChanged,
             onReopenOnboarding = onReopenOnboarding,
             onSetupGuide = onSetupGuide,
             onAbout = onAbout,
@@ -88,7 +89,8 @@ internal fun SettingsContent(
     onReopenOnboarding: () -> Unit,
     onSetupGuide: () -> Unit,
     onAbout: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onGridChanged: (io.github.jn0v.traceglass.core.overlay.CompositionGrid) -> Unit = {}
 ) {
     Column(
         modifier = modifier
@@ -170,6 +172,35 @@ internal fun SettingsContent(
                 role = Role.Switch,
                 onValueChange = onPerspectiveCorrectionToggled
             )
+        )
+
+        HorizontalDivider()
+
+        ListItem(
+            headlineContent = { Text(stringResource(R.string.settings_grid)) },
+            supportingContent = {
+                androidx.compose.foundation.layout.Row(
+                    horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp)
+                ) {
+                    io.github.jn0v.traceglass.core.overlay.CompositionGrid.entries.forEach { option ->
+                        androidx.compose.material3.FilterChip(
+                            selected = uiState.grid == option,
+                            onClick = { onGridChanged(option) },
+                            label = {
+                                Text(
+                                    stringResource(
+                                        when (option) {
+                                            io.github.jn0v.traceglass.core.overlay.CompositionGrid.Off -> R.string.settings_grid_off
+                                            io.github.jn0v.traceglass.core.overlay.CompositionGrid.Thirds -> R.string.settings_grid_thirds
+                                            io.github.jn0v.traceglass.core.overlay.CompositionGrid.Golden -> R.string.settings_grid_golden
+                                        }
+                                    )
+                                )
+                            }
+                        )
+                    }
+                }
+            }
         )
 
         HorizontalDivider()

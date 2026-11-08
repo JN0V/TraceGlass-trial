@@ -4,5 +4,6 @@ data class SettingsUiState(
     val audioFeedbackEnabled: Boolean = false,
     val breakReminderEnabled: Boolean = false,
     val breakReminderIntervalMinutes: Int = 30,
-    val perspectiveCorrectionEnabled: Boolean = true
+    val perspectiveCorrectionEnabled: Boolean = true,
+    val grid: io.github.jn0v.traceglass.core.overlay.CompositionGrid = io.github.jn0v.traceglass.core.overlay.CompositionGrid.Off
 )
