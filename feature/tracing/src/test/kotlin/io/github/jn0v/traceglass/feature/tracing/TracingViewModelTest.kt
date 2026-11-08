@@ -1258,6 +1258,26 @@ class TracingViewModelTest {
         }
 
         @Test
+        fun `startTimelapse after pause resumes and keeps earlier snapshots without clear`() = runTest(testDispatcher) {
+            val vm = createViewModel(snapshotStorage = fakeStorage, frameAnalyzer = fakeAnalyzer)
+            vm.startTimelapse()
+            testDispatcher.scheduler.runCurrent()
+            fakeStorage.saveSnapshot(byteArrayOf(1), 0)
+            fakeStorage.saveSnapshot(byteArrayOf(2), 1)
+            vm.pauseTimelapse()
+            testDispatcher.scheduler.runCurrent()
+            fakeStorage.clearCalled = false
+
+            vm.startTimelapse()
+            testDispatcher.scheduler.runCurrent()
+
+            assertTrue(vm.uiState.value.isTimelapseRecording)
+            assertFalse(fakeStorage.clearCalled, "Resuming must not clear the storage")
+            assertEquals(2, fakeStorage.savedSnapshots.size)
+            vm.viewModelScope.cancel()
+        }
+
+        @Test
         fun `stopTimelapse resets all timelapse state`() = runTest(testDispatcher) {
             val vm = createViewModel(snapshotStorage = fakeStorage, frameAnalyzer = fakeAnalyzer)
             vm.startTimelapse()
@@ -2120,6 +2140,7 @@ class TracingViewModelTest {
                 cacheDir = cacheDir
             )
             compileVideo(vm)
+            storage.clearCalled = false // the fresh start clears leftovers; only export-time clearing matters here
             assertFalse(storage.clearCalled, "Storage should NOT be cleared yet")
 
             vm.exportTimelapse()
