@@ -19,7 +19,12 @@ class FileSnapshotStorage(
         if (!file.createNewFile()) {
             throw java.io.IOException("Snapshot already exists: ${file.name}")
         }
-        file.writeBytes(jpegData)
+        try {
+            file.writeBytes(jpegData)
+        } catch (e: Exception) {
+            file.delete()
+            throw e
+        }
         cachedCount.updateAndGet { c -> if (c >= 0) c + 1 else c }
         return file
     }

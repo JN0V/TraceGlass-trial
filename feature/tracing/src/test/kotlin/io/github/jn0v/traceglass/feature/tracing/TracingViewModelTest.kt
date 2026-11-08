@@ -2396,6 +2396,42 @@ class TracingViewModelTest {
         }
 
         @Test
+        fun `timelapse restore continue captures at storage nextIndex not file count`() = runTest(testDispatcher) {
+            val repo = FakeSessionRepository()
+            repo.save(SessionData(
+                imageUri = "file:///img",
+                isTimelapseRecording = true,
+                timelapseSnapshotCount = 3
+            ))
+            val storage = FakeSnapshotStorage()
+            storage.fakeSnapshotCount = 3
+            storage.fakeNextIndex = 5
+
+            val fakeUri = mockk<Uri>()
+            mockkStatic(Uri::class)
+            every { Uri.parse(any()) } returns fakeUri
+
+            val vm = createViewModel(
+                sessionRepository = repo,
+                snapshotStorage = storage,
+                frameAnalyzer = fakeAnalyzerLocal
+            )
+            vm.restoreSession()
+            vm.onResumeSessionAccepted()
+            testDispatcher.scheduler.runCurrent()
+
+            vm.onTimelapseRestoreContinue()
+            testDispatcher.scheduler.runCurrent()
+            fakeAnalyzerLocal.snapshotCallback?.invoke(byteArrayOf(9))
+            testDispatcher.scheduler.runCurrent()
+
+            vm.viewModelScope.cancel()
+            assertEquals(listOf(5), storage.savedSnapshots.map { it.second })
+
+            unmockkStatic(Uri::class)
+        }
+
+        @Test
         fun `timelapse restore continue auto-resumes if was recording`() = runTest(testDispatcher) {
             val repo = FakeSessionRepository()
             repo.save(SessionData(
