@@ -11,7 +11,7 @@ import kotlinx.coroutines.launch
 
 class TimelapseSession(
     private val intervalMs: Long = 5000L,
-    private val onCapture: suspend (index: Int) -> Unit = {}
+    private val onCapture: suspend (index: Int) -> Boolean = { true }
 ) {
     private val _state = MutableStateFlow(TimelapseState.IDLE)
     val state: StateFlow<TimelapseState> = _state.asStateFlow()
@@ -63,8 +63,11 @@ class TimelapseSession(
             while (true) {
                 val index = _snapshotCount.value
                 try {
-                    onCapture(index)
-                    _snapshotCount.value = index + 1
+                    if (onCapture(index)) {
+                        _snapshotCount.value = index + 1
+                    }
+                } catch (e: kotlinx.coroutines.CancellationException) {
+                    throw e
                 } catch (e: Exception) {
                     Log.w(TAG, "Snapshot capture #$index failed", e)
                 }
