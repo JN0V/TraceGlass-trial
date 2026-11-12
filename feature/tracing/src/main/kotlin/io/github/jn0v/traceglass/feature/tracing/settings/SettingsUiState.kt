@@ -7,5 +7,7 @@ data class SettingsUiState(
     val breakReminderEnabled: Boolean = false,
     val breakReminderIntervalMinutes: Int = 30,
     val perspectiveCorrectionEnabled: Boolean = true,
-    val gridMode: GridMode = GridMode.OFF
+    val gridMode: GridMode = GridMode.OFF,
+    val timelapseIntervalSeconds: Int = 5,
+    val timelapseFps: Int = 10
 )

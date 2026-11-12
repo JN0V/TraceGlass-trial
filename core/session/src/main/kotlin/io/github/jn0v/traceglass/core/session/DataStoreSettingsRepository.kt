@@ -34,7 +34,9 @@ class DataStoreSettingsRepository(
                 perspectiveCorrectionEnabled = prefs[KEY_PERSPECTIVE_CORRECTION] ?: true,
                 gridMode = prefs[KEY_GRID_MODE]
                     ?.let { name -> GridMode.entries.firstOrNull { it.name == name } }
-                    ?: GridMode.OFF
+                    ?: GridMode.OFF,
+                timelapseIntervalSeconds = (prefs[KEY_TIMELAPSE_INTERVAL] ?: 5).coerceIn(1, 60),
+                timelapseFps = (prefs[KEY_TIMELAPSE_FPS] ?: 10).coerceIn(1, 60)
             )
         }
 
@@ -58,7 +60,17 @@ class DataStoreSettingsRepository(
         dataStore.edit { it[KEY_GRID_MODE] = mode.name }
     }
 
+    override suspend fun setTimelapseIntervalSeconds(seconds: Int) {
+        dataStore.edit { it[KEY_TIMELAPSE_INTERVAL] = seconds.coerceIn(1, 60) }
+    }
+
+    override suspend fun setTimelapseFps(fps: Int) {
+        dataStore.edit { it[KEY_TIMELAPSE_FPS] = fps.coerceIn(1, 60) }
+    }
+
     companion object {
+        private val KEY_TIMELAPSE_INTERVAL = intPreferencesKey("settings_timelapse_interval_seconds")
+        private val KEY_TIMELAPSE_FPS = intPreferencesKey("settings_timelapse_fps")
         private val KEY_AUDIO_FEEDBACK = booleanPreferencesKey("settings_audio_feedback")
         private val KEY_BREAK_REMINDER = booleanPreferencesKey("settings_break_reminder")
         private val KEY_BREAK_INTERVAL = intPreferencesKey("settings_break_interval")

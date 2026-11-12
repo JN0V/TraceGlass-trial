@@ -29,6 +29,10 @@
     <string name="settings_break_reminder_toggle">Break reminder toggle</string>
     <string name="settings_break_interval">Reminder interval: %d min</string>
     <string name="settings_break_interval_slider">Break reminder interval slider</string>
+    <string name="settings_timelapse_interval">Snapshot interval: %d s</string>
+    <string name="settings_timelapse_interval_slider">Snapshot interval slider</string>
+    <string name="settings_timelapse_fps">Video speed: %d fps</string>
+    <string name="settings_timelapse_fps_slider">Video speed slider</string>
     <string name="break_reminder_message">Time for a break!</string>
     <string name="overlay_locked_message">Overlay locked</string>
     <string name="settings_grid">Grid</string>

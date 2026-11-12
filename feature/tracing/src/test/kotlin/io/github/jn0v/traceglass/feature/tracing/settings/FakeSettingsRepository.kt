@@ -41,6 +41,14 @@ class FakeSettingsRepository : SettingsRepository {
         _settingsData.value = _settingsData.value.copy(perspectiveCorrectionEnabled = enabled)
     }
 
+    override suspend fun setTimelapseIntervalSeconds(seconds: Int) {
+        _settingsData.value = _settingsData.value.copy(timelapseIntervalSeconds = seconds)
+    }
+
+    override suspend fun setTimelapseFps(fps: Int) {
+        _settingsData.value = _settingsData.value.copy(timelapseFps = fps)
+    }
+
     override suspend fun setGridMode(mode: GridMode) {
         _settingsData.value = _settingsData.value.copy(gridMode = mode)
     }
