@@ -382,7 +382,7 @@ class OverlayTransformCalculator(
 
             val angle = computeAngle(markers)
             if (referenceAngle == null) referenceAngle = angle
-            rotation = angle - (referenceAngle ?: angle)
+            rotation = wrapDegrees(angle - (referenceAngle ?: angle))
         } else {
             val marker = markers[0]
             if (marker.corners.size >= 2) {
@@ -393,7 +393,7 @@ class OverlayTransformCalculator(
 
                 val angle = computeSingleMarkerAngle(marker)
                 if (referenceAngleSingle == null) referenceAngleSingle = angle
-                rotation = angle - (referenceAngleSingle ?: angle)
+                rotation = wrapDegrees(angle - (referenceAngleSingle ?: angle))
             } else {
                 scale = lastTransform.scale
                 rotation = lastTransform.rotation
@@ -423,7 +423,7 @@ class OverlayTransformCalculator(
             offsetX = lerp(previous.offsetX, target.offsetX, smoothingFactor),
             offsetY = lerp(previous.offsetY, target.offsetY, smoothingFactor),
             scale = lerp(previous.scale, target.scale, smoothingFactor),
-            rotation = lerp(previous.rotation, target.rotation, smoothingFactor),
+            rotation = previous.rotation + wrapDegrees(target.rotation - previous.rotation) * smoothingFactor,
             paperCornersFrame = target.paperCornersFrame,
             paperAspectRatio = target.paperAspectRatio
         )
@@ -550,6 +550,12 @@ class OverlayTransformCalculator(
             }
         }
         return maxDist
+    }
+
+    private fun wrapDegrees(deg: Float): Float {
+        var d = deg % 360f
+        if (d > 180f) d -= 360f else if (d < -180f) d += 360f
+        return d
     }
 
     private fun lerp(start: Float, end: Float, fraction: Float): Float =
