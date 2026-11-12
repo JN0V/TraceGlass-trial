@@ -54,6 +54,18 @@ class FileSnapshotStorageTest {
             assertEquals("snapshot_0001.jpg", files[1].name)
             assertEquals("snapshot_0002.jpg", files[2].name)
         }
+
+        // Given a storage whose count was read once (0),
+        // When I save snapshot 0 twice,
+        // Then the count is 1 and the folder holds 1 file.
+        @Test
+        fun `overwriting a snapshot does not grow the count`() {
+            assertEquals(0, storage.getSnapshotCount())
+            storage.saveSnapshot(byteArrayOf(1), 0)
+            storage.saveSnapshot(byteArrayOf(2), 0)
+            assertEquals(1, storage.getSnapshotCount())
+            assertEquals(1, File(tempDir, "timelapse").listFiles()!!.size)
+        }
     }
 
     @Nested

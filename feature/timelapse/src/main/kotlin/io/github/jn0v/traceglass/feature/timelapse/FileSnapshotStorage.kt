@@ -16,8 +16,9 @@ class FileSnapshotStorage(
 
     override fun saveSnapshot(jpegData: ByteArray, index: Int): File {
         val file = File(timelapseDir, "snapshot_%04d.jpg".format(index))
+        val existed = file.exists()
         file.writeBytes(jpegData)
-        cachedCount.updateAndGet { c -> if (c >= 0) c + 1 else c }
+        if (!existed) cachedCount.updateAndGet { c -> if (c >= 0) c + 1 else c }
         return file
     }
 
