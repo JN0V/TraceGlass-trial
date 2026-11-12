@@ -26,6 +26,7 @@ data class TracingUiState(
     val detectedMarkerCount: Int = 0,
     val showBreakReminder: Boolean = false,
     val audioFeedbackEnabled: Boolean = false,
+    val gridMode: io.github.jn0v.traceglass.core.session.GridMode = io.github.jn0v.traceglass.core.session.GridMode.OFF,
     val showResumeSessionDialog: Boolean = false,
     val isOverlayLocked: Boolean = false,
     val viewportZoom: Float = 1f,

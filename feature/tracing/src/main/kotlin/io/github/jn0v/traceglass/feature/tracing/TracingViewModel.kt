@@ -116,7 +116,7 @@ class TracingViewModel(
                 audioFeedbackEnabled = data.audioFeedbackEnabled
                 val perspectiveChanged = perspectiveCorrectionEnabled != data.perspectiveCorrectionEnabled
                 perspectiveCorrectionEnabled = data.perspectiveCorrectionEnabled
-                _uiState.update { it.copy(audioFeedbackEnabled = data.audioFeedbackEnabled) }
+                _uiState.update { it.copy(audioFeedbackEnabled = data.audioFeedbackEnabled, gridMode = data.gridMode) }
                 if (perspectiveChanged) updateOverlayFromCombined()
                 if (intervalChanged || enabledChanged) {
                     restartBreakTimer()

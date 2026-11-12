@@ -1,5 +1,6 @@
 package io.github.jn0v.traceglass.feature.tracing.settings
 
+import io.github.jn0v.traceglass.core.session.GridMode
 import io.github.jn0v.traceglass.core.session.SettingsData
 import io.github.jn0v.traceglass.core.session.SettingsRepository
 import kotlinx.coroutines.flow.Flow
@@ -38,5 +39,9 @@ class FakeSettingsRepository : SettingsRepository {
     override suspend fun setPerspectiveCorrectionEnabled(enabled: Boolean) {
         perspectiveCorrectionSetCount++
         _settingsData.value = _settingsData.value.copy(perspectiveCorrectionEnabled = enabled)
+    }
+
+    override suspend fun setGridMode(mode: GridMode) {
+        _settingsData.value = _settingsData.value.copy(gridMode = mode)
     }
 }

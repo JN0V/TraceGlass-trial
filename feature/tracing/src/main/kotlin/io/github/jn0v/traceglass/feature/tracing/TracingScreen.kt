@@ -151,6 +151,7 @@ fun TracingScreen(
                 previousTrackingState = uiState.previousTrackingState,
                 showBreakReminder = uiState.showBreakReminder,
                 audioFeedbackEnabled = uiState.audioFeedbackEnabled,
+                gridMode = uiState.gridMode,
                 onBreakReminderDismissed = viewModel::onBreakReminderDismissed,
                 onNavigateToSettings = onNavigateToSettings,
                 onPickImage = {
