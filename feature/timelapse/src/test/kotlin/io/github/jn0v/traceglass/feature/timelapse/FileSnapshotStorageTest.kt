@@ -87,6 +87,24 @@ class FileSnapshotStorageTest {
             )
         }
 
+        // Given snapshots 1000, 1001, 9998, 9999, 10000 and 10001 saved,
+        // When the snapshot files are listed,
+        // Then they come in numeric order.
+        @Test
+        fun `lists snapshots in numeric order past 9999`() {
+            listOf(10001, 9999, 1000, 10000, 9998, 1001).forEach {
+                storage.saveSnapshot(byteArrayOf(1), it)
+            }
+            val names = storage.getSnapshotFiles().map { it.name }
+            assertEquals(
+                listOf(
+                    "snapshot_1000.jpg", "snapshot_1001.jpg", "snapshot_9998.jpg",
+                    "snapshot_9999.jpg", "snapshot_10000.jpg", "snapshot_10001.jpg"
+                ),
+                names
+            )
+        }
+
         @Test
         fun `count matches saved snapshots`() {
             assertEquals(0, storage.getSnapshotCount())
