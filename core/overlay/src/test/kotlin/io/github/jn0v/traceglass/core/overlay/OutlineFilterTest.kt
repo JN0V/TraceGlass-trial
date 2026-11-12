@@ -46,6 +46,20 @@ class OutlineFilterTest {
         assertArrayEquals(IntArray(16) { clear }, out)
     }
 
+    // Given a step from 0 to 100 and a threshold of 100, When it is filtered,
+    // Then the edge is shown: a step equal to the threshold counts as an edge.
+    @Test
+    fun `step equal to threshold`() {
+        val pixels = IntArray(16) { i -> if (i % 4 < 2) grey(0) else grey(100) }
+        val out = OutlineFilter.filter(pixels, 4, 4, 100)
+        for (y in 0 until 4) {
+            for (x in 0 until 4) {
+                val expected = if (x == 1 || x == 2) opaque else clear
+                assertEquals(expected, out[y * 4 + x], "pixel x=$x y=$y")
+            }
+        }
+    }
+
     // Given a pixel list whose length is not width x height, When it is filtered,
     // Then it is refused with an error.
     @Test
