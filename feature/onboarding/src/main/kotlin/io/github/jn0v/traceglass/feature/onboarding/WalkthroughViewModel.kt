@@ -24,6 +24,8 @@ class WalkthroughViewModel(
     private val guidanceTimeoutSeconds = 10
 
     fun startDetection() {
+        val current = _uiState.value
+        if (current.markersDetected || current.step != WalkthroughStep.DETECTING_MARKERS) return
         _uiState.update { it.copy(step = WalkthroughStep.DETECTING_MARKERS, elapsedSeconds = 0) }
         timerJob?.cancel()
         timerJob = viewModelScope.launch {
