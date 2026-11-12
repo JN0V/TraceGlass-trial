@@ -8,4 +8,5 @@ interface SettingsRepository {
     suspend fun setBreakReminderEnabled(enabled: Boolean)
     suspend fun setBreakReminderIntervalMinutes(minutes: Int)
     suspend fun setPerspectiveCorrectionEnabled(enabled: Boolean)
+    suspend fun setGridMode(mode: GridMode)
 }

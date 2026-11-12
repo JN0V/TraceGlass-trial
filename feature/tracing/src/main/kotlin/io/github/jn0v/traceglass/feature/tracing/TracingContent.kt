@@ -59,6 +59,7 @@ import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.isSpecified
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -109,6 +110,7 @@ internal fun TracingContent(
     previousTrackingState: TrackingState = TrackingState.INACTIVE,
     showBreakReminder: Boolean,
     audioFeedbackEnabled: Boolean,
+    gridMode: io.github.jn0v.traceglass.core.session.GridMode = io.github.jn0v.traceglass.core.session.GridMode.OFF,
     onBreakReminderDismissed: () -> Unit,
     onNavigateToSettings: () -> Unit,
     onPickImage: () -> Unit,
@@ -341,8 +343,9 @@ internal fun TracingContent(
                 // Cache objects to avoid per-draw allocations
                 val matrixObj = remember { android.graphics.Matrix() }
                 val identityValues = remember { MatrixUtils.identity() }
+                val painter = rememberAsyncImagePainter(model = overlayImageUri)
                 Image(
-                    painter = rememberAsyncImagePainter(model = overlayImageUri),
+                    painter = painter,
                     contentDescription = stringResource(R.string.content_desc_overlay_image),
                     modifier = Modifier
                         .fillMaxSize()
@@ -353,6 +356,25 @@ internal fun TracingContent(
                                 canvas.nativeCanvas.save()
                                 canvas.nativeCanvas.concat(matrixObj)
                                 drawContent()
+                                if (gridMode != io.github.jn0v.traceglass.core.session.GridMode.OFF) {
+                                    // Same canvas transform as the image: the grid stays on the picture
+                                    val intrinsic = painter.intrinsicSize
+                                    if (intrinsic.isSpecified && intrinsic.width > 0f && intrinsic.height > 0f) {
+                                        val fit = minOf(size.width / intrinsic.width, size.height / intrinsic.height)
+                                        val w = intrinsic.width * fit
+                                        val h = intrinsic.height * fit
+                                        val left = (size.width - w) / 2f
+                                        val top = (size.height - h) / 2f
+                                        computeGridLines(w, h, gridMode).forEach { l ->
+                                            drawLine(
+                                                color = Color.White,
+                                                start = Offset(left + l.x1, top + l.y1),
+                                                end = Offset(left + l.x2, top + l.y2),
+                                                strokeWidth = 1.dp.toPx()
+                                            )
+                                        }
+                                    }
+                                }
                                 canvas.nativeCanvas.restore()
                             }
                         }

@@ -2,6 +2,7 @@ package io.github.jn0v.traceglass.feature.tracing.settings
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import io.github.jn0v.traceglass.core.session.GridMode
 import io.github.jn0v.traceglass.core.session.SettingsRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -26,7 +27,8 @@ class SettingsViewModel(
                         audioFeedbackEnabled = data.audioFeedbackEnabled,
                         breakReminderEnabled = data.breakReminderEnabled,
                         breakReminderIntervalMinutes = data.breakReminderIntervalMinutes,
-                        perspectiveCorrectionEnabled = data.perspectiveCorrectionEnabled
+                        perspectiveCorrectionEnabled = data.perspectiveCorrectionEnabled,
+                        gridMode = data.gridMode
                     )
                 }
             }
@@ -55,6 +57,12 @@ class SettingsViewModel(
     fun onPerspectiveCorrectionToggled(enabled: Boolean) {
         viewModelScope.launch {
             repository.setPerspectiveCorrectionEnabled(enabled)
+        }
+    }
+
+    fun onGridChanged(mode: GridMode) {
+        viewModelScope.launch {
+            repository.setGridMode(mode)
         }
     }
 
