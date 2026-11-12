@@ -383,16 +383,23 @@ class OverlayTransformCalculator(
             val angle = computeAngle(markers)
             if (referenceAngle == null) referenceAngle = angle
             rotation = wrapDegrees(angle - (referenceAngle ?: angle))
+            // Re-anchor the single-marker reference at the next handover.
+            referenceEdgeLength = null
+            referenceAngleSingle = null
         } else {
             val marker = markers[0]
             if (marker.corners.size >= 2) {
                 val edgeLength = computeEdgeLength(marker)
-                if (referenceEdgeLength == null) referenceEdgeLength = edgeLength
+                // Anchor on the last transform so the handover keeps scale and rotation.
+                if (referenceEdgeLength == null) {
+                    referenceEdgeLength =
+                        if (lastTransform.scale > 0.001f) edgeLength / lastTransform.scale else edgeLength
+                }
                 val refEdge = referenceEdgeLength ?: edgeLength
                 scale = if (refEdge > 0.001f) edgeLength / refEdge else 1f
 
                 val angle = computeSingleMarkerAngle(marker)
-                if (referenceAngleSingle == null) referenceAngleSingle = angle
+                if (referenceAngleSingle == null) referenceAngleSingle = angle - lastTransform.rotation
                 rotation = wrapDegrees(angle - (referenceAngleSingle ?: angle))
             } else {
                 scale = lastTransform.scale
