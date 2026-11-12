@@ -349,6 +349,8 @@ internal fun TracingContent(
                     contentDescription = stringResource(R.string.content_desc_overlay_image),
                     modifier = Modifier
                         .fillMaxSize()
+                        // alpha wraps the draw below: image and grid fade together
+                        .alpha(effectiveOpacity)
                         .drawWithContent {
                             drawIntoCanvas { canvas ->
                                 // Read State.value here (draw phase only) — no recomposition triggered
@@ -377,8 +379,7 @@ internal fun TracingContent(
                                 }
                                 canvas.nativeCanvas.restore()
                             }
-                        }
-                        .alpha(effectiveOpacity),
+                        },
                     contentScale = ContentScale.Fit,
                     colorFilter = colorTint.toColorFilter()
                 )
