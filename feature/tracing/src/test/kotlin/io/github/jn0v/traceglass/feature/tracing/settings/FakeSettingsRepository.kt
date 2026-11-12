@@ -44,4 +44,8 @@ class FakeSettingsRepository : SettingsRepository {
     override suspend fun setGridMode(mode: GridMode) {
         _settingsData.value = _settingsData.value.copy(gridMode = mode)
     }
+
+    override suspend fun setAutoStartTimelapse(enabled: Boolean) {
+        _settingsData.value = _settingsData.value.copy(autoStartTimelapse = enabled)
+    }
 }

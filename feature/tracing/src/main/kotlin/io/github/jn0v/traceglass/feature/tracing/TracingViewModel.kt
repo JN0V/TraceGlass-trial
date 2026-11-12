@@ -101,6 +101,7 @@ class TracingViewModel(
     // Timelapse state
     private var timelapseSession: TimelapseSession? = null
     private var timelapseObserverJob: Job? = null
+    private var autoStartTimelapse = true
 
     init {
         flashlightController.isTorchOn
@@ -114,6 +115,7 @@ class TracingViewModel(
                 breakReminderEnabled = data.breakReminderEnabled
                 breakReminderIntervalMinutes = data.breakReminderIntervalMinutes
                 audioFeedbackEnabled = data.audioFeedbackEnabled
+                autoStartTimelapse = data.autoStartTimelapse
                 val perspectiveChanged = perspectiveCorrectionEnabled != data.perspectiveCorrectionEnabled
                 perspectiveCorrectionEnabled = data.perspectiveCorrectionEnabled
                 _uiState.update { it.copy(audioFeedbackEnabled = data.audioFeedbackEnabled, gridMode = data.gridMode) }
@@ -207,6 +209,7 @@ class TracingViewModel(
 
     fun onToggleLock() {
         _uiState.update { it.copy(isOverlayLocked = true, showLockSnackbar = true) }
+        if (autoStartTimelapse && timelapseSession == null) startTimelapse()
         debounceSave()
     }
 
