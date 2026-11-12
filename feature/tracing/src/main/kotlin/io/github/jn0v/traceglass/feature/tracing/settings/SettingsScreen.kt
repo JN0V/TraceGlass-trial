@@ -79,6 +79,8 @@ fun SettingsScreen(
             onBreakIntervalChanged = viewModel::onBreakIntervalChanged,
             onPerspectiveCorrectionToggled = viewModel::onPerspectiveCorrectionToggled,
             onGridChanged = viewModel::onGridChanged,
+            onTimelapseIntervalChanged = viewModel::onTimelapseIntervalChanged,
+            onTimelapseFpsChanged = viewModel::onTimelapseFpsChanged,
             onReopenOnboarding = onReopenOnboarding,
             onSetupGuide = onSetupGuide,
             onAbout = onAbout,
@@ -95,6 +97,8 @@ internal fun SettingsContent(
     onBreakIntervalChanged: (Int) -> Unit,
     onPerspectiveCorrectionToggled: (Boolean) -> Unit,
     onGridChanged: (GridMode) -> Unit = {},
+    onTimelapseIntervalChanged: (Int) -> Unit = {},
+    onTimelapseFpsChanged: (Int) -> Unit = {},
     onReopenOnboarding: () -> Unit,
     onSetupGuide: () -> Unit,
     onAbout: () -> Unit,
@@ -224,6 +228,21 @@ internal fun SettingsContent(
 
         HorizontalDivider()
 
+        TimelapseSlider(
+            value = uiState.timelapseIntervalSeconds,
+            title = R.string.settings_timelapse_interval,
+            description = R.string.settings_timelapse_interval_slider,
+            onChanged = onTimelapseIntervalChanged
+        )
+        TimelapseSlider(
+            value = uiState.timelapseFps,
+            title = R.string.settings_timelapse_fps,
+            description = R.string.settings_timelapse_fps_slider,
+            onChanged = onTimelapseFpsChanged
+        )
+
+        HorizontalDivider()
+
         ListItem(
             headlineContent = { Text(stringResource(R.string.settings_setup_guide)) },
             supportingContent = { Text(stringResource(R.string.settings_setup_guide_desc)) },
@@ -256,3 +275,28 @@ private fun gridModeLabel(mode: GridMode): String = stringResource(
         GridMode.GOLDEN_RATIO -> R.string.settings_grid_golden
     }
 )
+
+@Composable
+private fun TimelapseSlider(
+    value: Int,
+    @androidx.annotation.StringRes title: Int,
+    @androidx.annotation.StringRes description: Int,
+    onChanged: (Int) -> Unit
+) {
+    val desc = stringResource(description)
+    var sliderValue by remember { mutableFloatStateOf(value.toFloat()) }
+    LaunchedEffect(value) { sliderValue = value.toFloat() }
+    ListItem(
+        headlineContent = { Text(stringResource(title, sliderValue.toInt())) },
+        supportingContent = {
+            Slider(
+                value = sliderValue,
+                onValueChange = { sliderValue = it },
+                onValueChangeFinished = { onChanged(sliderValue.toInt()) },
+                valueRange = 1f..60f,
+                steps = 58,
+                modifier = Modifier.semantics { contentDescription = desc }
+            )
+        }
+    )
+}

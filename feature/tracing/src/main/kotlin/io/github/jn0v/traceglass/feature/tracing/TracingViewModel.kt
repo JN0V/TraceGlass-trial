@@ -73,6 +73,8 @@ class TracingViewModel(
     private val _renderMatrix = MutableStateFlow<FloatArray?>(null)
     val renderMatrix: StateFlow<FloatArray?> = _renderMatrix.asStateFlow()
 
+    private var timelapseIntervalSeconds = 5
+    private var timelapseFps = 10
     private var breakReminderEnabled = false
     private var breakReminderIntervalMinutes = 30
     private var audioFeedbackEnabled = false
@@ -114,6 +116,8 @@ class TracingViewModel(
                 breakReminderEnabled = data.breakReminderEnabled
                 breakReminderIntervalMinutes = data.breakReminderIntervalMinutes
                 audioFeedbackEnabled = data.audioFeedbackEnabled
+                timelapseIntervalSeconds = data.timelapseIntervalSeconds
+                timelapseFps = data.timelapseFps
                 val perspectiveChanged = perspectiveCorrectionEnabled != data.perspectiveCorrectionEnabled
                 perspectiveCorrectionEnabled = data.perspectiveCorrectionEnabled
                 _uiState.update { it.copy(audioFeedbackEnabled = data.audioFeedbackEnabled, gridMode = data.gridMode) }
@@ -315,7 +319,7 @@ class TracingViewModel(
             previousRecordingStopped = false
         }
 
-        val session = TimelapseSession(onCapture = { index ->
+        val session = TimelapseSession(intervalMs = timelapseIntervalSeconds * 1000L, onCapture = { index ->
             analyzer.snapshotCallback = { bytes ->
                 storage.saveSnapshot(bytes, index)
             }
@@ -372,7 +376,7 @@ class TracingViewModel(
             val result = compiler.compile(
                 snapshotFiles = snapshotFiles,
                 outputFile = outputFile,
-                fps = 10,
+                fps = timelapseFps,
                 onProgress = { progress ->
                     _uiState.update { it.copy(compilationProgress = progress) }
                 }
@@ -655,7 +659,7 @@ class TracingViewModel(
 
         _uiState.update { it.copy(showTimelapseRestoreDialog = false, pendingTimelapseSnapshotCount = 0) }
 
-        val session = TimelapseSession(onCapture = { index ->
+        val session = TimelapseSession(intervalMs = timelapseIntervalSeconds * 1000L, onCapture = { index ->
             analyzer.snapshotCallback = { bytes ->
                 storage.saveSnapshot(bytes, index)
             }
