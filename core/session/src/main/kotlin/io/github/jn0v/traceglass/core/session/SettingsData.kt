@@ -7,5 +7,6 @@ data class SettingsData(
     val breakReminderEnabled: Boolean = false,
     val breakReminderIntervalMinutes: Int = 30,
     val perspectiveCorrectionEnabled: Boolean = true,
-    val gridMode: GridMode = GridMode.OFF
+    val gridMode: GridMode = GridMode.OFF,
+    val autoStartTimelapse: Boolean = true
 )

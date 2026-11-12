@@ -79,6 +79,7 @@ fun SettingsScreen(
             onBreakIntervalChanged = viewModel::onBreakIntervalChanged,
             onPerspectiveCorrectionToggled = viewModel::onPerspectiveCorrectionToggled,
             onGridChanged = viewModel::onGridChanged,
+            onAutoStartTimelapseToggled = viewModel::onAutoStartTimelapseToggled,
             onReopenOnboarding = onReopenOnboarding,
             onSetupGuide = onSetupGuide,
             onAbout = onAbout,
@@ -95,6 +96,7 @@ internal fun SettingsContent(
     onBreakIntervalChanged: (Int) -> Unit,
     onPerspectiveCorrectionToggled: (Boolean) -> Unit,
     onGridChanged: (GridMode) -> Unit = {},
+    onAutoStartTimelapseToggled: (Boolean) -> Unit = {},
     onReopenOnboarding: () -> Unit,
     onSetupGuide: () -> Unit,
     onAbout: () -> Unit,
@@ -163,6 +165,24 @@ internal fun SettingsContent(
                 }
             )
         }
+
+        HorizontalDivider()
+
+        ListItem(
+            headlineContent = { Text(stringResource(R.string.settings_auto_start_timelapse)) },
+            supportingContent = { Text(stringResource(R.string.settings_auto_start_timelapse_desc)) },
+            trailingContent = {
+                Switch(
+                    checked = uiState.autoStartTimelapse,
+                    onCheckedChange = null
+                )
+            },
+            modifier = Modifier.toggleable(
+                value = uiState.autoStartTimelapse,
+                role = Role.Switch,
+                onValueChange = onAutoStartTimelapseToggled
+            )
+        )
 
         HorizontalDivider()
 
