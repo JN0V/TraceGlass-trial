@@ -25,10 +25,21 @@ class FileSnapshotStorage(
     override fun getSnapshotFiles(): List<File> {
         val files = timelapseDir
             .listFiles { f -> f.extension == "jpg" }
-            ?.sorted()
+            ?.sortedWith(
+                compareBy<File> { snapshotNumber(it) == null }
+                    .thenBy(nullsLast()) { snapshotNumber(it) }
+                    .thenBy { it.name }
+            )
             ?: emptyList()
         cachedCount.set(files.size)
         return files
+    }
+
+    private fun snapshotNumber(file: File): java.math.BigInteger? =
+        SNAPSHOT_NAME.matchEntire(file.name)?.groupValues?.get(1)?.toBigInteger()
+
+    private companion object {
+        val SNAPSHOT_NAME = Regex("snapshot_(\\d+)\\.jpg")
     }
 
     override fun getSnapshotCount(): Int {
