@@ -294,6 +294,8 @@ class TracingViewModel(
         _uiState.update { it.copy(areControlsVisible = !it.areControlsVisible) }
     }
 
+    private var previousRecordingStopped = false
+
     fun startTimelapse() {
         val storage = snapshotStorage ?: return
         val analyzer = frameAnalyzer ?: return
@@ -305,6 +307,12 @@ class TracingViewModel(
                 existing.resume(viewModelScope)
             }
             return
+        }
+
+        // A new recording starts empty, whatever became of the previous one's dialog
+        if (previousRecordingStopped) {
+            storage.clear()
+            previousRecordingStopped = false
         }
 
         val session = TimelapseSession(onCapture = { index ->
@@ -335,6 +343,7 @@ class TracingViewModel(
         timelapseObserverJob?.cancel()
         timelapseObserverJob = null
         timelapseSession = null
+        previousRecordingStopped = true
 
         _uiState.update {
             it.copy(
