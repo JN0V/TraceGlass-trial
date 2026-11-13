@@ -11,6 +11,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import java.io.IOException
 
 class WalkthroughViewModel(
     private val onboardingRepository: OnboardingRepository,
@@ -59,14 +60,22 @@ class WalkthroughViewModel(
 
     fun onImagePicked(imageUri: String) {
         viewModelScope.launch {
-            sessionRepository.save(SessionData(imageUri = imageUri))
+            try {
+                sessionRepository.save(SessionData(imageUri = imageUri))
+            } catch (_: IOException) {
+                // the session may be lost; the walkthrough goes on
+            }
         }
         _uiState.update { it.copy(step = WalkthroughStep.SHOW_TOOLTIP, imageUri = imageUri) }
     }
 
     fun onTooltipDismissed() {
         viewModelScope.launch {
-            onboardingRepository.setTooltipShown()
+            try {
+                onboardingRepository.setTooltipShown()
+            } catch (_: IOException) {
+                // the flag may be lost; the walkthrough goes on
+            }
         }
         _uiState.update { it.copy(step = WalkthroughStep.COMPLETED) }
     }
