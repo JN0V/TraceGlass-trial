@@ -38,6 +38,9 @@ class CameraXManager(private val context: Context) : CameraManager, FlashlightCo
     private val _cameraError = MutableStateFlow<String?>(null)
     override val cameraError: StateFlow<String?> = _cameraError.asStateFlow()
 
+    private val _widestZoomRatio = MutableStateFlow<Float?>(null)
+    override val widestZoomRatio: StateFlow<Float?> = _widestZoomRatio.asStateFlow()
+
     private val _isTorchOn = MutableStateFlow(false)
     override val isTorchOn: StateFlow<Boolean> = _isTorchOn.asStateFlow()
 
@@ -96,6 +99,7 @@ class CameraXManager(private val context: Context) : CameraManager, FlashlightCo
 
                 logSelectedCamera(camera)
                 setWidestZoom(camera)
+                _widestZoomRatio.value = camera?.cameraInfo?.zoomState?.value?.minZoomRatio
 
                 cameraProvider = provider
                 _isCameraReady.value = true
@@ -111,6 +115,7 @@ class CameraXManager(private val context: Context) : CameraManager, FlashlightCo
         cameraProvider = null
         camera = null
         _isCameraReady.value = false
+        _widestZoomRatio.value = null
         _isTorchOn.value = false
     }
 

@@ -9,6 +9,8 @@ import java.io.Closeable
 interface CameraManager : Closeable {
     val isCameraReady: StateFlow<Boolean>
     val cameraError: StateFlow<String?>
+    /** Camera's widest (minimum) zoom ratio; null while unknown. */
+    val widestZoomRatio: StateFlow<Float?>
     fun bindPreview(
         lifecycleOwner: LifecycleOwner,
         surfaceProvider: Preview.SurfaceProvider,
