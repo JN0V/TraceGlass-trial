@@ -24,11 +24,11 @@ class DataStoreSessionRepository(
         }
         SessionData(
             imageUri = prefs[KEY_IMAGE_URI],
-            overlayOffsetX = prefs[KEY_OFFSET_X] ?: 0f,
-            overlayOffsetY = prefs[KEY_OFFSET_Y] ?: 0f,
-            overlayScale = prefs[KEY_SCALE] ?: 1f,
-            overlayRotation = prefs[KEY_ROTATION] ?: 0f,
-            overlayOpacity = prefs[KEY_OPACITY] ?: 0.5f,
+            overlayOffsetX = finiteOr(prefs[KEY_OFFSET_X], 0f),
+            overlayOffsetY = finiteOr(prefs[KEY_OFFSET_Y], 0f),
+            overlayScale = finiteOr(prefs[KEY_SCALE], 1f).let { if (it <= 0f) 1f else it },
+            overlayRotation = finiteOr(prefs[KEY_ROTATION], 0f),
+            overlayOpacity = finiteOr(prefs[KEY_OPACITY], 0.5f).coerceIn(0f, 1f),
             colorTint = prefs[KEY_COLOR_TINT] ?: "NONE",
             isInvertedMode = prefs[KEY_INVERTED] ?: false,
             isSessionActive = prefs[KEY_SESSION_ACTIVE] ?: false,
@@ -36,9 +36,9 @@ class DataStoreSessionRepository(
             isTimelapseRecording = prefs[KEY_TIMELAPSE_RECORDING] ?: false,
             isTimelapsePaused = prefs[KEY_TIMELAPSE_PAUSED] ?: false,
             isOverlayLocked = prefs[KEY_OVERLAY_LOCKED] ?: false,
-            viewportZoom = prefs[KEY_VIEWPORT_ZOOM] ?: 1f,
-            viewportPanX = prefs[KEY_VIEWPORT_PAN_X] ?: 0f,
-            viewportPanY = prefs[KEY_VIEWPORT_PAN_Y] ?: 0f
+            viewportZoom = finiteOr(prefs[KEY_VIEWPORT_ZOOM], 1f).coerceIn(1f, 5f),
+            viewportPanX = finiteOr(prefs[KEY_VIEWPORT_PAN_X], 0f),
+            viewportPanY = finiteOr(prefs[KEY_VIEWPORT_PAN_Y], 0f)
         )
     }
 
@@ -75,6 +75,9 @@ class DataStoreSessionRepository(
     }
 
     companion object {
+        private fun finiteOr(value: Float?, default: Float): Float =
+            if (value == null || !value.isFinite()) default else value
+
         private const val TAG = "DataStoreSessionRepo"
         private const val SCHEMA_VERSION = 1
 
