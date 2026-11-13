@@ -8,14 +8,27 @@ import androidx.datastore.preferences.core.floatPreferencesKey
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import android.util.Log
+import androidx.datastore.preferences.core.emptyPreferences
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.retryWhen
+import java.io.IOException
 import kotlinx.coroutines.flow.map
 
 class DataStoreSessionRepository(
     private val dataStore: DataStore<Preferences>
 ) : SessionRepository {
 
-    override val sessionData: Flow<SessionData> = dataStore.data.map { prefs ->
+    override val sessionData: Flow<SessionData> = dataStore.data.catch { e ->
+        if (e !is IOException) throw e
+        Log.w(TAG, "Session store unreadable — treating as empty session", e)
+        emit(emptyPreferences())
+        throw e
+    }.retryWhen { cause, _ ->
+        // Keep observing: a later successful save or a recovered file must still be seen.
+        if (cause !is IOException) false else { delay(RETRY_DELAY_MS); true }
+    }.map { prefs ->
         val version = prefs[KEY_SCHEMA_VERSION] ?: 0
         if (version != SCHEMA_VERSION && version != 0) {
             // Incompatible schema — discard stale data and return defaults
@@ -80,6 +93,7 @@ class DataStoreSessionRepository(
 
         private const val TAG = "DataStoreSessionRepo"
         private const val SCHEMA_VERSION = 1
+        private const val RETRY_DELAY_MS = 2_000L
 
         private val KEY_SCHEMA_VERSION = intPreferencesKey("session_schema_version")
         private val KEY_IMAGE_URI = stringPreferencesKey("session_image_uri")
