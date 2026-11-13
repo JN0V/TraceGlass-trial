@@ -26,8 +26,8 @@ class WalkthroughViewModel(
     fun startDetection() {
         val current = _uiState.value
         if (current.markersDetected || current.step != WalkthroughStep.DETECTING_MARKERS) return
+        if (timerJob?.isActive == true) return
         _uiState.update { it.copy(step = WalkthroughStep.DETECTING_MARKERS, elapsedSeconds = 0) }
-        timerJob?.cancel()
         timerJob = viewModelScope.launch {
             while (!_uiState.value.markersDetected) {
                 delay(1000)
