@@ -57,11 +57,11 @@ fun WalkthroughScreen(
     val photoPickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri ->
-        uri?.let {
-            val internalUri = copyImageToInternal(context, it)
-            if (internalUri != null) {
-                viewModel.onImagePicked(internalUri.toString())
-            }
+        val internalUri = uri?.let { copyImageToInternal(context, it) }
+        if (internalUri != null) {
+            viewModel.onImagePicked(internalUri.toString())
+        } else {
+            viewModel.onImagePickCancelled()
         }
     }
 

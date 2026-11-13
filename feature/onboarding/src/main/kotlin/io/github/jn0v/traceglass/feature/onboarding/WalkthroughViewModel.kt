@@ -58,6 +58,16 @@ class WalkthroughViewModel(
         _uiState.update { it.copy(step = WalkthroughStep.PICK_IMAGE) }
     }
 
+    fun onImagePickCancelled() {
+        _uiState.update {
+            if (it.step == WalkthroughStep.PICK_IMAGE) {
+                it.copy(step = WalkthroughStep.MARKERS_FOUND, imageUri = null)
+            } else {
+                it
+            }
+        }
+    }
+
     fun onImagePicked(imageUri: String) {
         viewModelScope.launch {
             try {
