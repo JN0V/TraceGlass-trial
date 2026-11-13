@@ -49,6 +49,8 @@ class TimelapseSession(
 
     fun restoreFromExisting(existingCount: Int) {
         if (existingCount <= 0) return
+        captureJob?.cancel()
+        captureJob = null
         _snapshotCount.value = existingCount
         _state.value = TimelapseState.PAUSED
     }
