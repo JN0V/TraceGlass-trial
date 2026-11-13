@@ -8,14 +8,21 @@ import androidx.datastore.preferences.core.floatPreferencesKey
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import android.util.Log
+import androidx.datastore.preferences.core.emptyPreferences
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.catch
+import java.io.IOException
 import kotlinx.coroutines.flow.map
 
 class DataStoreSessionRepository(
     private val dataStore: DataStore<Preferences>
 ) : SessionRepository {
 
-    override val sessionData: Flow<SessionData> = dataStore.data.map { prefs ->
+    override val sessionData: Flow<SessionData> = dataStore.data.catch { e ->
+        if (e !is IOException) throw e
+        Log.w(TAG, "Session store unreadable — treating as empty session", e)
+        emit(emptyPreferences())
+    }.map { prefs ->
         val version = prefs[KEY_SCHEMA_VERSION] ?: 0
         if (version != SCHEMA_VERSION && version != 0) {
             // Incompatible schema — discard stale data and return defaults
