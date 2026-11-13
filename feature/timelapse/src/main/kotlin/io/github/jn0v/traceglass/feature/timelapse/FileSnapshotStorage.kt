@@ -24,10 +24,9 @@ class FileSnapshotStorage(
 
     override fun getSnapshotFiles(): List<File> {
         val files = timelapseDir
-            .listFiles { f -> f.extension == "jpg" }
+            .listFiles { f -> snapshotNumber(f) != null }
             ?.sortedWith(
-                compareBy<File> { snapshotNumber(it) == null }
-                    .thenBy(nullsLast()) { snapshotNumber(it) }
+                compareBy<File, java.math.BigInteger?>(nullsLast()) { snapshotNumber(it) }
                     .thenBy { it.name }
             )
             ?: emptyList()
