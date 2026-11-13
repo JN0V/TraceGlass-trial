@@ -43,8 +43,16 @@ class OverlayTransformCalculator(
     private var prevSmooth: Map<Int, Pair<Float, Float>>? = null
 
     // Affine fallback state (only used before reference is established)
-    private var referenceSpacing: Float? = null
-    private var referenceAngle: Float? = null
+    // Reference frame for 2+ markers: first-seen position of each marker, the
+    // reference centre, and the current similarity (ref -> frame). Markers that
+    // appear later are added to the reference through the current similarity, so
+    // a change of the visible set does not move the overlay.
+    private val refPositions = mutableMapOf<Int, Pair<Float, Float>>()
+    private var refCenter: Pair<Float, Float>? = null
+    private var simScale = 1f
+    private var simAngle = 0f
+    private var simTx = 0f
+    private var simTy = 0f
     private var referenceEdgeLength: Float? = null
     private var referenceAngleSingle: Float? = null
     private val markerOffsetFromMidpoint = mutableMapOf<Int, Pair<Float, Float>>()
@@ -350,10 +358,13 @@ class OverlayTransformCalculator(
 
         val centerX: Float
         val centerY: Float
+        var multiTransform: Pair<Float, Float>? = null // scale, rotation degrees
 
         if (markers.size >= 2) {
-            centerX = markers.map { it.centerX }.average().toFloat()
-            centerY = markers.map { it.centerY }.average().toFloat()
+            multiTransform = updateSimilarity(markers)
+            val rc = refCenter!!
+            centerX = simTx + simScale * (cos(simAngle) * rc.first - sin(simAngle) * rc.second)
+            centerY = simTy + simScale * (sin(simAngle) * rc.first + cos(simAngle) * rc.second)
             for (m in markers) {
                 markerOffsetFromMidpoint[m.id] = Pair(m.centerX - centerX, m.centerY - centerY)
             }
@@ -375,14 +386,8 @@ class OverlayTransformCalculator(
         val rotation: Float
 
         if (markers.size >= 2) {
-            val spacing = computeMaxSpacing(markers)
-            if (referenceSpacing == null) referenceSpacing = spacing
-            val refSpacing = referenceSpacing ?: spacing
-            scale = if (refSpacing > 0.001f) spacing / refSpacing else 1f
-
-            val angle = computeAngle(markers)
-            if (referenceAngle == null) referenceAngle = angle
-            rotation = wrapDegrees(angle - (referenceAngle ?: angle))
+            scale = multiTransform!!.first
+            rotation = multiTransform.second
             // Re-anchor the single-marker reference at the next handover.
             referenceEdgeLength = null
             referenceAngleSingle = null
@@ -483,8 +488,9 @@ class OverlayTransformCalculator(
     }
 
     fun resetReference() {
-        referenceSpacing = null
-        referenceAngle = null
+        refPositions.clear()
+        refCenter = null
+        simScale = 1f; simAngle = 0f; simTx = 0f; simTy = 0f
         referenceEdgeLength = null
         referenceAngleSingle = null
         markerOffsetFromMidpoint.clear()
@@ -536,27 +542,62 @@ class OverlayTransformCalculator(
         return sqrt(dx * dx + dy * dy)
     }
 
-    private fun computeAngle(markers: List<DetectedMarker>): Float {
-        val sorted = markers.sortedBy { it.id }
-        val dx = sorted[1].centerX - sorted[0].centerX
-        val dy = sorted[1].centerY - sorted[0].centerY
-        return Math.toDegrees(atan2(dy.toDouble(), dx.toDouble())).toFloat()
-    }
-
-    // Note: max pairwise distance is used for scale. If the visible marker set changes
-    // (e.g. markers 0,1 → markers 0,3), the scale may jump because the max distance
-    // differs. This is acceptable for the affine fallback path (pre-reference only).
-    private fun computeMaxSpacing(markers: List<DetectedMarker>): Float {
-        var maxDist = 0f
-        for (i in markers.indices) {
-            for (j in i + 1 until markers.size) {
-                val dx = markers[i].centerX - markers[j].centerX
-                val dy = markers[i].centerY - markers[j].centerY
-                val dist = sqrt(dx * dx + dy * dy)
-                if (dist > maxDist) maxDist = dist
+    /**
+     * Fits the similarity (ref -> frame) on the visible markers already in the
+     * reference, then adds the others to the reference. Returns scale and rotation.
+     */
+    private fun updateSimilarity(markers: List<DetectedMarker>): Pair<Float, Float> {
+        if (refCenter == null) {
+            for (m in markers) refPositions[m.id] = Pair(m.centerX, m.centerY)
+            refCenter = Pair(
+                markers.map { it.centerX }.average().toFloat(),
+                markers.map { it.centerY }.average().toFloat()
+            )
+            simScale = 1f; simAngle = 0f; simTx = 0f; simTy = 0f
+            return Pair(1f, 0f)
+        }
+        val known = markers.filter { it.id in refPositions }
+        if (known.size >= 2) {
+            val rs = known.map { refPositions.getValue(it.id) }
+            val rcx = rs.map { it.first }.average().toFloat()
+            val rcy = rs.map { it.second }.average().toFloat()
+            val ccx = known.map { it.centerX }.average().toFloat()
+            val ccy = known.map { it.centerY }.average().toFloat()
+            var re = 0.0; var im = 0.0; var den = 0.0
+            for (i in known.indices) {
+                val rx = (rs[i].first - rcx).toDouble(); val ry = (rs[i].second - rcy).toDouble()
+                val cx = (known[i].centerX - ccx).toDouble(); val cy = (known[i].centerY - ccy).toDouble()
+                re += rx * cx + ry * cy
+                im += rx * cy - ry * cx
+                den += rx * rx + ry * ry
+            }
+            if (den > 1e-6) {
+                simScale = (sqrt(re * re + im * im) / den).toFloat()
+                simAngle = atan2(im, re).toFloat()
+                simTx = ccx - simScale * (cos(simAngle) * rcx - sin(simAngle) * rcy)
+                simTy = ccy - simScale * (sin(simAngle) * rcx + cos(simAngle) * rcy)
+            }
+        } else if (known.size == 1) {
+            val r = refPositions.getValue(known[0].id)
+            simTx = known[0].centerX - simScale * (cos(simAngle) * r.first - sin(simAngle) * r.second)
+            simTy = known[0].centerY - simScale * (sin(simAngle) * r.first + cos(simAngle) * r.second)
+        } else {
+            // No marker in common with the reference: rebase on the current view.
+            val rc = refCenter!!
+            val cx = markers.map { it.centerX }.average().toFloat()
+            val cy = markers.map { it.centerY }.average().toFloat()
+            simTx = cx - simScale * (cos(simAngle) * rc.first - sin(simAngle) * rc.second)
+            simTy = cy - simScale * (sin(simAngle) * rc.first + cos(simAngle) * rc.second)
+        }
+        if (simScale > 0.001f) {
+            val c = cos(simAngle); val s = sin(simAngle)
+            for (m in markers) {
+                if (m.id in refPositions) continue
+                val dx = m.centerX - simTx; val dy = m.centerY - simTy
+                refPositions[m.id] = Pair((c * dx + s * dy) / simScale, (-s * dx + c * dy) / simScale)
             }
         }
-        return maxDist
+        return Pair(simScale, wrapDegrees(Math.toDegrees(simAngle.toDouble()).toFloat()))
     }
 
     private fun wrapDegrees(deg: Float): Float {
