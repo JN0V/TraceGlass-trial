@@ -101,8 +101,10 @@ class CameraXManager(private val context: Context) : CameraManager, FlashlightCo
 
                 logSelectedCamera(camera)
                 setWidestZoom(camera)
+                // The factor only applies to a camera that reports a min zoom of 1.0;
+                // a logical camera with its own min zoom below 1 is already scaled.
                 _widestZoomRatio.value = camera?.cameraInfo?.zoomState?.value?.minZoomRatio
-                    ?.let { it * separateWideFactor }
+                    ?.let { if (it >= 1f) it * separateWideFactor else it }
 
                 cameraProvider = provider
                 _isCameraReady.value = true
@@ -172,17 +174,28 @@ class CameraXManager(private val context: Context) : CameraManager, FlashlightCo
                 )
                 val minFocal = focalLengths?.minOrNull() ?: Float.MAX_VALUE
                 Log.d(TAG, "Camera: focal=${minFocal}mm, id=${cam2Info.cameraId}")
-                focals[cameraInfo] = minFocal
+                val sensorWidth = cam2Info.getCameraCharacteristic(
+                    CameraCharacteristics.SENSOR_INFO_PHYSICAL_SIZE
+                )?.width
+                focals[cameraInfo] =
+                    if (minFocal == Float.MAX_VALUE || sensorWidth == null || sensorWidth <= 0f) {
+                        Float.MAX_VALUE
+                    } else {
+                        minFocal * FULL_FRAME_WIDTH_MM / sensorWidth
+                    }
                 minFocal
             }
 
             // An ultra-wide exposed as its own back camera reports a min zoom of 1.0;
-            // scale by its focal length relative to the next-widest back camera.
+            // scale by its 35mm-equivalent focal length relative to the next-widest back
+            // camera. Only a genuinely ultra-wide lens counts: a main camera beside a
+            // telephoto must not be read as ultra-wide.
             val widestFocal = widest?.let { focals[it] }
             val nextFocal = backCameras.filter { it !== widest }
                 .mapNotNull { focals[it] }.filter { it != Float.MAX_VALUE }.minOrNull()
             if (widestFocal != null && widestFocal != Float.MAX_VALUE && nextFocal != null &&
-                widestFocal < nextFocal
+                widestFocal <= ULTRA_WIDE_MAX_EQUIV_FOCAL_MM &&
+                widestFocal / nextFocal <= ULTRA_WIDE_MAX_RATIO
             ) {
                 separateWideFactor = widestFocal / nextFocal
             }
@@ -246,5 +259,8 @@ class CameraXManager(private val context: Context) : CameraManager, FlashlightCo
 
     companion object {
         private const val TAG = "CameraXManager"
+        private const val FULL_FRAME_WIDTH_MM = 36f
+        private const val ULTRA_WIDE_MAX_EQUIV_FOCAL_MM = 20f
+        private const val ULTRA_WIDE_MAX_RATIO = 0.8f
     }
 }
