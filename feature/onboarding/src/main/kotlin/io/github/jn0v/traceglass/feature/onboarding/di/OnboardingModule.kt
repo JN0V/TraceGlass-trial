@@ -2,6 +2,7 @@ package io.github.jn0v.traceglass.feature.onboarding.di
 
 import android.content.Context
 import androidx.datastore.preferences.preferencesDataStore
+import io.github.jn0v.traceglass.core.camera.CameraManager
 import io.github.jn0v.traceglass.feature.onboarding.DataStoreOnboardingRepository
 import io.github.jn0v.traceglass.feature.onboarding.OnboardingRepository
 import io.github.jn0v.traceglass.feature.onboarding.OnboardingViewModel
@@ -18,5 +19,5 @@ val onboardingModule = module {
     single { WalkthroughAnalyzer(markerDetector = get()) }
     viewModel { OnboardingViewModel(get()) }
     viewModel { WalkthroughViewModel(onboardingRepository = get(), sessionRepository = get()) }
-    viewModel { SetupGuideViewModel() }
+    viewModel { SetupGuideViewModel(get<CameraManager>().widestZoomRatio) }
 }
