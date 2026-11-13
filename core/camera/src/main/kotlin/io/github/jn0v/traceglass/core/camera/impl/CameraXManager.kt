@@ -41,6 +41,8 @@ class CameraXManager(private val context: Context) : CameraManager, FlashlightCo
     private val _widestZoomRatio = MutableStateFlow<Float?>(null)
     override val widestZoomRatio: StateFlow<Float?> = _widestZoomRatio.asStateFlow()
 
+    @Volatile private var separateWideFactor = 1f
+
     private val _isTorchOn = MutableStateFlow(false)
     override val isTorchOn: StateFlow<Boolean> = _isTorchOn.asStateFlow()
 
@@ -100,6 +102,7 @@ class CameraXManager(private val context: Context) : CameraManager, FlashlightCo
                 logSelectedCamera(camera)
                 setWidestZoom(camera)
                 _widestZoomRatio.value = camera?.cameraInfo?.zoomState?.value?.minZoomRatio
+                    ?.let { it * separateWideFactor }
 
                 cameraProvider = provider
                 _isCameraReady.value = true
@@ -151,6 +154,7 @@ class CameraXManager(private val context: Context) : CameraManager, FlashlightCo
      */
 
     private fun buildWideAngleSelector(provider: ProcessCameraProvider): CameraSelector {
+        separateWideFactor = 1f
         try {
             val backCameras = provider.availableCameraInfos.filter {
                 it.lensFacing == CameraSelector.LENS_FACING_BACK
@@ -160,6 +164,7 @@ class CameraXManager(private val context: Context) : CameraManager, FlashlightCo
                 return CameraSelector.DEFAULT_BACK_CAMERA
             }
 
+            val focals = HashMap<androidx.camera.core.CameraInfo, Float>()
             val widest = backCameras.minByOrNull { cameraInfo ->
                 val cam2Info = Camera2CameraInfo.from(cameraInfo)
                 val focalLengths = cam2Info.getCameraCharacteristic(
@@ -167,7 +172,19 @@ class CameraXManager(private val context: Context) : CameraManager, FlashlightCo
                 )
                 val minFocal = focalLengths?.minOrNull() ?: Float.MAX_VALUE
                 Log.d(TAG, "Camera: focal=${minFocal}mm, id=${cam2Info.cameraId}")
+                focals[cameraInfo] = minFocal
                 minFocal
+            }
+
+            // An ultra-wide exposed as its own back camera reports a min zoom of 1.0;
+            // scale by its focal length relative to the next-widest back camera.
+            val widestFocal = widest?.let { focals[it] }
+            val nextFocal = backCameras.filter { it !== widest }
+                .mapNotNull { focals[it] }.filter { it != Float.MAX_VALUE }.minOrNull()
+            if (widestFocal != null && widestFocal != Float.MAX_VALUE && nextFocal != null &&
+                widestFocal < nextFocal
+            ) {
+                separateWideFactor = widestFocal / nextFocal
             }
 
             if (widest != null) {
