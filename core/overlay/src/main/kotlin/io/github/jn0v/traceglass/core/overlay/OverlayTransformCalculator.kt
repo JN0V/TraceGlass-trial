@@ -581,14 +581,10 @@ class OverlayTransformCalculator(
             val r = refPositions.getValue(known[0].id)
             simTx = known[0].centerX - simScale * (cos(simAngle) * r.first - sin(simAngle) * r.second)
             simTy = known[0].centerY - simScale * (sin(simAngle) * r.first + cos(simAngle) * r.second)
-        } else {
-            // No marker in common with the reference: rebase on the current view.
-            val rc = refCenter!!
-            val cx = markers.map { it.centerX }.average().toFloat()
-            val cy = markers.map { it.centerY }.average().toFloat()
-            simTx = cx - simScale * (cos(simAngle) * rc.first - sin(simAngle) * rc.second)
-            simTy = cy - simScale * (sin(simAngle) * rc.first + cos(simAngle) * rc.second)
         }
+        // With no marker in common with the reference there is nothing to fit:
+        // keep the last similarity so the overlay stays where it was, and the
+        // new markers join the reference through it below.
         if (simScale > 0.001f) {
             val c = cos(simAngle); val s = sin(simAngle)
             for (m in markers) {
