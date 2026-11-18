@@ -3,6 +3,7 @@ package io.github.jn0v.traceglass.feature.onboarding
 import android.util.Log
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.emptyPreferences
 import io.mockk.every
 import io.mockk.mockkStatic
 import io.mockk.unmockkStatic
@@ -33,11 +34,13 @@ class DataStoreOnboardingUnreadableTest {
         unmockkStatic(Log::class)
     }
 
+    // Only reads fail: a write succeeds, so a fix that writes defaults
+    // back after a failed read does not trip this fake.
     private class ThrowingStore(private val error: Throwable) : DataStore<Preferences> {
         override val data: Flow<Preferences> = flow { throw error }
         override suspend fun updateData(
             transform: suspend (t: Preferences) -> Preferences
-        ): Preferences = throw error
+        ): Preferences = transform(emptyPreferences())
     }
 
     // Given the onboarding store throws an IOException on read,
