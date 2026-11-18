@@ -218,5 +218,60 @@ class TimelapseSessionTest {
             session.restoreFromExisting(-5)
             assertEquals(TimelapseState.IDLE, session.state.value)
         }
+
+        // Given a session recording with 3 captures,
+        // When it is restored from 10 and 15 s pass,
+        // Then no capture is taken.
+        @Test
+        fun `restore while recording takes no capture`() = runTest {
+            val captured = mutableListOf<Int>()
+            val session = TimelapseSession(
+                intervalMs = 1000L,
+                onCapture = { index -> captured.add(index) }
+            )
+            session.start(this)
+            advanceTimeBy(2100)
+            assertEquals(3, captured.size)
+            session.restoreFromExisting(10)
+            captured.clear()
+            advanceTimeBy(15000)
+            assertEquals(emptyList<Int>(), captured)
+            session.stop()
+        }
+
+        // Given a session recording with 3 captures,
+        // When it is restored from 10 and 15 s pass,
+        // Then the count is 10.
+        @Test
+        fun `restore while recording keeps the restored count`() = runTest {
+            val session = TimelapseSession(intervalMs = 1000L)
+            session.start(this)
+            advanceTimeBy(2100)
+            session.restoreFromExisting(10)
+            advanceTimeBy(15000)
+            assertEquals(10, session.snapshotCount.value)
+            session.stop()
+        }
+
+        // Given a session restored from 10 while recording,
+        // When 15 s pass and I resume,
+        // Then the next capture is numbered 10.
+        @Test
+        fun `resume after restore while recording numbers next capture with restored count`() = runTest {
+            val captured = mutableListOf<Int>()
+            val session = TimelapseSession(
+                intervalMs = 1000L,
+                onCapture = { index -> captured.add(index) }
+            )
+            session.start(this)
+            advanceTimeBy(2100)
+            session.restoreFromExisting(10)
+            advanceTimeBy(15000)
+            captured.clear()
+            session.resume(this)
+            advanceTimeBy(100)
+            assertEquals(listOf(10), captured)
+            session.stop()
+        }
     }
 }

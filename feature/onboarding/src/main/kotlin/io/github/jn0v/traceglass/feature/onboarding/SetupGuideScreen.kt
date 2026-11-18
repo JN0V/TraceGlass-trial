@@ -95,6 +95,17 @@ internal fun SetupGuideContent(
 
             Spacer(modifier = Modifier.height(16.dp))
 
+            if (uiState.showNarrowViewNotice) {
+                Card(modifier = Modifier.fillMaxWidth()) {
+                    Text(
+                        text = stringResource(R.string.guide_narrow_view_notice),
+                        style = MaterialTheme.typography.bodyMedium,
+                        modifier = Modifier.padding(16.dp)
+                    )
+                }
+                Spacer(modifier = Modifier.height(16.dp))
+            }
+
             when (uiState.selectedSection) {
                 SetupGuideSection.MARKER_GUIDE -> MarkerGuideContent()
                 SetupGuideSection.MACGYVER_GUIDE -> MacGyverGuideContent()

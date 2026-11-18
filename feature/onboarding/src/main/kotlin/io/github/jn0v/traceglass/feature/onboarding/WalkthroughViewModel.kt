@@ -11,6 +11,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import java.io.IOException
 
 class WalkthroughViewModel(
     private val onboardingRepository: OnboardingRepository,
@@ -24,8 +25,10 @@ class WalkthroughViewModel(
     private val guidanceTimeoutSeconds = 10
 
     fun startDetection() {
+        val current = _uiState.value
+        if (current.markersDetected || current.step != WalkthroughStep.DETECTING_MARKERS) return
+        if (timerJob?.isActive == true) return
         _uiState.update { it.copy(step = WalkthroughStep.DETECTING_MARKERS, elapsedSeconds = 0) }
-        timerJob?.cancel()
         timerJob = viewModelScope.launch {
             while (!_uiState.value.markersDetected) {
                 delay(1000)
@@ -55,16 +58,34 @@ class WalkthroughViewModel(
         _uiState.update { it.copy(step = WalkthroughStep.PICK_IMAGE) }
     }
 
+    fun onImagePickCancelled() {
+        _uiState.update {
+            if (it.step == WalkthroughStep.PICK_IMAGE) {
+                it.copy(step = WalkthroughStep.MARKERS_FOUND, imageUri = null)
+            } else {
+                it
+            }
+        }
+    }
+
     fun onImagePicked(imageUri: String) {
         viewModelScope.launch {
-            sessionRepository.save(SessionData(imageUri = imageUri))
+            try {
+                sessionRepository.save(SessionData(imageUri = imageUri))
+            } catch (_: IOException) {
+                // the session may be lost; the walkthrough goes on
+            }
         }
         _uiState.update { it.copy(step = WalkthroughStep.SHOW_TOOLTIP, imageUri = imageUri) }
     }
 
     fun onTooltipDismissed() {
         viewModelScope.launch {
-            onboardingRepository.setTooltipShown()
+            try {
+                onboardingRepository.setTooltipShown()
+            } catch (_: IOException) {
+                // the flag may be lost; the walkthrough goes on
+            }
         }
         _uiState.update { it.copy(step = WalkthroughStep.COMPLETED) }
     }

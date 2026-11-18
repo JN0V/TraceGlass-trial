@@ -36,7 +36,8 @@ class DataStoreSettingsRepository(
                     ?.let { name -> GridMode.entries.firstOrNull { it.name == name } }
                     ?: GridMode.OFF,
                 timelapseIntervalSeconds = (prefs[KEY_TIMELAPSE_INTERVAL] ?: 5).coerceIn(1, 60),
-                timelapseFps = (prefs[KEY_TIMELAPSE_FPS] ?: 10).coerceIn(1, 60)
+                timelapseFps = (prefs[KEY_TIMELAPSE_FPS] ?: 10).coerceIn(1, 60),
+                autoStartTimelapse = prefs[KEY_AUTO_START_TIMELAPSE] ?: true
             )
         }
 
@@ -68,7 +69,12 @@ class DataStoreSettingsRepository(
         dataStore.edit { it[KEY_TIMELAPSE_FPS] = fps.coerceIn(1, 60) }
     }
 
+    override suspend fun setAutoStartTimelapse(enabled: Boolean) {
+        dataStore.edit { it[KEY_AUTO_START_TIMELAPSE] = enabled }
+    }
+
     companion object {
+        private val KEY_AUTO_START_TIMELAPSE = booleanPreferencesKey("settings_auto_start_timelapse")
         private val KEY_TIMELAPSE_INTERVAL = intPreferencesKey("settings_timelapse_interval_seconds")
         private val KEY_TIMELAPSE_FPS = intPreferencesKey("settings_timelapse_fps")
         private val KEY_AUDIO_FEEDBACK = booleanPreferencesKey("settings_audio_feedback")

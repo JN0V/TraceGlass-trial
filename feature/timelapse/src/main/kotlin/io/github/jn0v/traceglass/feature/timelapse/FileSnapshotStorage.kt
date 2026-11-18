@@ -15,7 +15,7 @@ class FileSnapshotStorage(
     private val cachedCount = AtomicInteger(-1)
 
     override fun saveSnapshot(jpegData: ByteArray, index: Int): File {
-        val file = File(timelapseDir, "snapshot_%04d.jpg".format(index))
+        val file = File(timelapseDir, "snapshot_%04d.jpg".format(java.util.Locale.ROOT, index))
         val existed = file.exists()
         file.writeBytes(jpegData)
         if (!existed) cachedCount.updateAndGet { c -> if (c >= 0) c + 1 else c }
@@ -24,11 +24,21 @@ class FileSnapshotStorage(
 
     override fun getSnapshotFiles(): List<File> {
         val files = timelapseDir
-            .listFiles { f -> f.extension == "jpg" }
-            ?.sorted()
+            .listFiles { f -> snapshotNumber(f) != null }
+            ?.sortedWith(
+                compareBy<File, java.math.BigInteger?>(nullsLast()) { snapshotNumber(it) }
+                    .thenBy { it.name }
+            )
             ?: emptyList()
         cachedCount.set(files.size)
         return files
+    }
+
+    private fun snapshotNumber(file: File): java.math.BigInteger? =
+        SNAPSHOT_NAME.matchEntire(file.name)?.groupValues?.get(1)?.toBigInteger()
+
+    private companion object {
+        val SNAPSHOT_NAME = Regex("snapshot_(\\p{Nd}+)\\.jpg")
     }
 
     override fun getSnapshotCount(): Int {

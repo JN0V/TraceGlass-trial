@@ -87,12 +87,74 @@ class FileSnapshotStorageTest {
             )
         }
 
+        // Given snapshots 1000, 1001, 9998, 9999, 10000 and 10001 saved,
+        // When the snapshot files are listed,
+        // Then they come in numeric order.
+        @Test
+        fun `lists snapshots in numeric order past 9999`() {
+            listOf(10001, 9999, 1000, 10000, 9998, 1001).forEach {
+                storage.saveSnapshot(byteArrayOf(1), it)
+            }
+            val names = storage.getSnapshotFiles().map { it.name }
+            assertEquals(
+                listOf(
+                    "snapshot_1000.jpg", "snapshot_1001.jpg", "snapshot_9998.jpg",
+                    "snapshot_9999.jpg", "snapshot_10000.jpg", "snapshot_10001.jpg"
+                ),
+                names
+            )
+        }
+
         @Test
         fun `count matches saved snapshots`() {
             assertEquals(0, storage.getSnapshotCount())
             storage.saveSnapshot(byteArrayOf(1), 0)
             storage.saveSnapshot(byteArrayOf(2), 1)
             assertEquals(2, storage.getSnapshotCount())
+        }
+    }
+
+    @Nested
+    inner class StrayFiles {
+        private fun timelapseDir(): File = File(tempDir, "timelapse").also { it.mkdirs() }
+
+        private fun saveThreeAndStray() {
+            storage.saveSnapshot(byteArrayOf(1), 0)
+            storage.saveSnapshot(byteArrayOf(2), 1)
+            storage.saveSnapshot(byteArrayOf(3), 2)
+            File(timelapseDir(), "cover.jpg").writeBytes(byteArrayOf(9))
+        }
+
+        // Given 3 snapshots and cover.jpg in the folder,
+        // When the snapshots are listed,
+        // Then exactly the 3 snapshots come back, in order.
+        @Test
+        fun `stray picture left out`() {
+            saveThreeAndStray()
+            val names = storage.getSnapshotFiles().map { it.name }
+            assertEquals(
+                listOf("snapshot_0000.jpg", "snapshot_0001.jpg", "snapshot_0002.jpg"),
+                names
+            )
+        }
+
+        // Given the same folder,
+        // When the snapshots are counted,
+        // Then the count is 3.
+        @Test
+        fun `stray picture is not counted`() {
+            saveThreeAndStray()
+            assertEquals(3, storage.getSnapshotCount())
+        }
+
+        // Given snapshot_abc.jpg in the folder,
+        // When the snapshots are listed,
+        // Then it is not among them.
+        @Test
+        fun `name without a number is left out`() {
+            File(timelapseDir(), "snapshot_abc.jpg").writeBytes(byteArrayOf(9))
+            val names = storage.getSnapshotFiles().map { it.name }
+            assertEquals(emptyList<String>(), names)
         }
     }
 

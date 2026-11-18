@@ -2,6 +2,7 @@ package io.github.jn0v.traceglass.feature.onboarding
 
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.setMain
@@ -21,7 +22,7 @@ class SetupGuideViewModelTest {
     @BeforeEach
     fun setUp() {
         Dispatchers.setMain(testDispatcher)
-        vm = SetupGuideViewModel()
+        vm = SetupGuideViewModel(MutableStateFlow<Float?>(null))
     }
 
     @AfterEach

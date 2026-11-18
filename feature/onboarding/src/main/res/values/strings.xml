@@ -62,6 +62,8 @@
     <string name="guide_marker_step4_title">Keep markers visible</string>
     <string name="guide_marker_step4_body">Make sure all four markers stay visible to the camera while you draw. Avoid covering them with your hand or paper.</string>
 
+    <string name="guide_narrow_view_notice">Your camera has no ultra-wide lens, so its view is narrow and may not capture the whole sheet. Hold the phone at least 30\u00a0cm above the sheet, or add a clip-on wide-angle lens.</string>
+
     <!-- MacGyverGuideContent -->
     <string name="guide_stand_title">Improvised Phone Stand</string>
     <string name="guide_stand_intro">No tripod? No problem. Use everyday objects to hold your phone about 25\u201330\u00a0cm above your drawing surface, camera pointing down.</string>

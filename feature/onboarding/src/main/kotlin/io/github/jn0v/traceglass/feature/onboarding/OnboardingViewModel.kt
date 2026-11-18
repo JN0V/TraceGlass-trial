@@ -8,6 +8,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import java.io.IOException
 
 class OnboardingViewModel(
     private val repository: OnboardingRepository
@@ -32,7 +33,13 @@ class OnboardingViewModel(
 
     fun onTierSelected(tier: SetupTier) {
         _uiState.update { it.copy(selectedTier = tier) }
-        viewModelScope.launch { repository.setSelectedTier(tier) }
+        viewModelScope.launch {
+            try {
+                repository.setSelectedTier(tier)
+            } catch (_: IOException) {
+                // the choice may be lost; onboarding goes on
+            }
+        }
     }
 
     fun onNextPage() {
@@ -50,7 +57,11 @@ class OnboardingViewModel(
     fun onComplete() {
         viewModelScope.launch {
             if (!_uiState.value.isReopened) {
-                repository.setOnboardingCompleted()
+                try {
+                    repository.setOnboardingCompleted()
+                } catch (_: IOException) {
+                    // the choice may be lost; onboarding still ends
+                }
             }
             _uiState.update { it.copy(isCompleted = true, wasSkipped = false) }
         }
@@ -59,7 +70,11 @@ class OnboardingViewModel(
     fun onSkip() {
         viewModelScope.launch {
             if (!_uiState.value.isReopened) {
-                repository.setOnboardingCompleted()
+                try {
+                    repository.setOnboardingCompleted()
+                } catch (_: IOException) {
+                    // the choice may be lost; onboarding still ends
+                }
             }
             _uiState.update { it.copy(isCompleted = true, wasSkipped = true) }
         }

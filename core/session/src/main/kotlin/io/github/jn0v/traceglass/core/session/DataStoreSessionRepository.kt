@@ -8,14 +8,27 @@ import androidx.datastore.preferences.core.floatPreferencesKey
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import android.util.Log
+import androidx.datastore.preferences.core.emptyPreferences
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.retryWhen
+import java.io.IOException
 import kotlinx.coroutines.flow.map
 
 class DataStoreSessionRepository(
     private val dataStore: DataStore<Preferences>
 ) : SessionRepository {
 
-    override val sessionData: Flow<SessionData> = dataStore.data.map { prefs ->
+    override val sessionData: Flow<SessionData> = dataStore.data.catch { e ->
+        if (e !is IOException) throw e
+        Log.w(TAG, "Session store unreadable — treating as empty session", e)
+        emit(emptyPreferences())
+        throw e
+    }.retryWhen { cause, _ ->
+        // Keep observing: a later successful save or a recovered file must still be seen.
+        if (cause !is IOException) false else { delay(RETRY_DELAY_MS); true }
+    }.map { prefs ->
         val version = prefs[KEY_SCHEMA_VERSION] ?: 0
         if (version != SCHEMA_VERSION && version != 0) {
             // Incompatible schema — discard stale data and return defaults
@@ -24,11 +37,11 @@ class DataStoreSessionRepository(
         }
         SessionData(
             imageUri = prefs[KEY_IMAGE_URI],
-            overlayOffsetX = prefs[KEY_OFFSET_X] ?: 0f,
-            overlayOffsetY = prefs[KEY_OFFSET_Y] ?: 0f,
-            overlayScale = prefs[KEY_SCALE] ?: 1f,
-            overlayRotation = prefs[KEY_ROTATION] ?: 0f,
-            overlayOpacity = prefs[KEY_OPACITY] ?: 0.5f,
+            overlayOffsetX = finiteOr(prefs[KEY_OFFSET_X], 0f),
+            overlayOffsetY = finiteOr(prefs[KEY_OFFSET_Y], 0f),
+            overlayScale = finiteOr(prefs[KEY_SCALE], 1f).let { if (it <= 0f) 1f else it },
+            overlayRotation = finiteOr(prefs[KEY_ROTATION], 0f),
+            overlayOpacity = finiteOr(prefs[KEY_OPACITY], 0.5f).coerceIn(0f, 1f),
             colorTint = prefs[KEY_COLOR_TINT] ?: "NONE",
             isInvertedMode = prefs[KEY_INVERTED] ?: false,
             isSessionActive = prefs[KEY_SESSION_ACTIVE] ?: false,
@@ -36,9 +49,9 @@ class DataStoreSessionRepository(
             isTimelapseRecording = prefs[KEY_TIMELAPSE_RECORDING] ?: false,
             isTimelapsePaused = prefs[KEY_TIMELAPSE_PAUSED] ?: false,
             isOverlayLocked = prefs[KEY_OVERLAY_LOCKED] ?: false,
-            viewportZoom = prefs[KEY_VIEWPORT_ZOOM] ?: 1f,
-            viewportPanX = prefs[KEY_VIEWPORT_PAN_X] ?: 0f,
-            viewportPanY = prefs[KEY_VIEWPORT_PAN_Y] ?: 0f
+            viewportZoom = finiteOr(prefs[KEY_VIEWPORT_ZOOM], 1f).coerceIn(1f, 5f),
+            viewportPanX = finiteOr(prefs[KEY_VIEWPORT_PAN_X], 0f),
+            viewportPanY = finiteOr(prefs[KEY_VIEWPORT_PAN_Y], 0f)
         )
     }
 
@@ -75,8 +88,12 @@ class DataStoreSessionRepository(
     }
 
     companion object {
+        private fun finiteOr(value: Float?, default: Float): Float =
+            if (value == null || !value.isFinite()) default else value
+
         private const val TAG = "DataStoreSessionRepo"
         private const val SCHEMA_VERSION = 1
+        private const val RETRY_DELAY_MS = 2_000L
 
         private val KEY_SCHEMA_VERSION = intPreferencesKey("session_schema_version")
         private val KEY_IMAGE_URI = stringPreferencesKey("session_image_uri")

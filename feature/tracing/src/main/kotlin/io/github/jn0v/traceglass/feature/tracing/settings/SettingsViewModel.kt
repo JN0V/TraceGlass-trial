@@ -30,7 +30,8 @@ class SettingsViewModel(
                         perspectiveCorrectionEnabled = data.perspectiveCorrectionEnabled,
                         gridMode = data.gridMode,
                         timelapseIntervalSeconds = data.timelapseIntervalSeconds,
-                        timelapseFps = data.timelapseFps
+                        timelapseFps = data.timelapseFps,
+                        autoStartTimelapse = data.autoStartTimelapse
                     )
                 }
             }
@@ -74,6 +75,12 @@ class SettingsViewModel(
 
     fun onTimelapseFpsChanged(fps: Int) {
         viewModelScope.launch { repository.setTimelapseFps(fps.coerceIn(1, 60)) }
+    }
+
+    fun onAutoStartTimelapseToggled(enabled: Boolean) {
+        viewModelScope.launch {
+            repository.setAutoStartTimelapse(enabled)
+        }
     }
 
     companion object {
