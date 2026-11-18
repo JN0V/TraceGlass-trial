@@ -138,8 +138,8 @@ jobs:
     # issues: the product owner's acts (comments, labels, closings,
     # reactions) on each issue.
     # actions: the next steps of the states the night moved, started
-    # (ADR-0059). statuses: the line's verdicts, read by the reconcile
-    # (ADR-0068 §8).
+    # by state. statuses: the line's verdicts, read by the reconcile
+    # (the merge policy).
     permissions: {contents: write, pull-requests: write, issues: write, actions: write, statuses: read}
     steps:
       - id: app

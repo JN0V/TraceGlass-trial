@@ -234,7 +234,7 @@ jobs:
     timeout-minutes: 30
     environment: workline-app       # the App's key: the default branch only (ADR-0044)
     # actions: the next step started, by workflow_dispatch (ADR-0059).
-    # statuses: the line's verdicts, read by the reconcile (ADR-0068 §8).
+    # statuses: the line's verdicts, read by the reconcile, as workline's merge policy says.
     permissions: {contents: write, pull-requests: write, issues: write, actions: write, statuses: read}
     outputs:
       next: ${{ steps.next.outputs.issue }}
@@ -392,7 +392,7 @@ jobs:
           fi
 
   # Who keeps the line's verdicts, for the reconciler to read them
-  # (ADR-0068 §8): the App's slug, read with its key in a job of its own,
+  # (workline's merge policy): the App's slug, read with its key in a job of its own,
   # so the key never reaches the job that runs the engine. Where the
   # environment refuses the key, a branch, the reconciler runs all the
   # same and says the verdicts it could not read.
@@ -400,7 +400,7 @@ jobs:
     if: github.event_name == 'workflow_dispatch' && (inputs.reconcile == 'true' || inputs.reconcile == 'next') && vars.WORKLINE_APP_ID != ''
     runs-on: ubuntu-latest
     timeout-minutes: 5
-    environment: workline-app       # the App's key: the default branch only (ADR-0044)
+    environment: workline-app       # the App's key: the default branch only
     permissions: {}
     outputs:
       app: ${{ steps.app.outputs.app-slug }}
@@ -430,7 +430,7 @@ jobs:
       cancel-in-progress: false
     runs-on: ubuntu-latest
     timeout-minutes: 120
-    # statuses: the line's verdicts on the heads, read (ADR-0068 §8).
+    # statuses: the line's verdicts on the heads, read.
     permissions: {contents: read, issues: read, pull-requests: read, checks: read, statuses: read, actions: write}
     steps:
       - uses: actions/checkout@v4
