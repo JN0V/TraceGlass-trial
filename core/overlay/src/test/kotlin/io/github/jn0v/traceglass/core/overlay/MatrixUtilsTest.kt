@@ -217,6 +217,13 @@ class MatrixUtilsTest {
 
     @Nested
     inner class Compose {
+        // Given no matrix, When they are composed, Then the result is the identity.
+        @Test
+        fun `no matrix`() {
+            val result = MatrixUtils.compose()
+            assertMatrixEquals(MatrixUtils.identity(), result)
+        }
+
         @Test
         fun `compose single matrix returns same matrix`() {
             val t = MatrixUtils.translate(5f, 10f)
