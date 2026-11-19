@@ -70,7 +70,7 @@ class TimelapseSession(
                 } catch (e: Exception) {
                     Log.w(TAG, "Snapshot capture #$index failed", e)
                 }
-                delay(intervalMs)
+                delay(if (intervalMs <= 0L) 1000L else intervalMs)
             }
         }
     }
