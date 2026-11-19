@@ -3,6 +3,7 @@ package io.github.jn0v.traceglass.core.overlay
 import org.junit.jupiter.api.Assertions.assertArrayEquals
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertThrows
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 
 class OutlineFilterTest {
@@ -67,5 +68,25 @@ class OutlineFilterTest {
         assertThrows(IllegalArgumentException::class.java) {
             OutlineFilter.filter(IntArray(15), 4, 4, 128)
         }
+    }
+
+    // Given a flat grey picture of 3 x 3 pixels, When it is filtered with a threshold of 0,
+    // Then every pixel comes back transparent.
+    @Test
+    fun `a threshold of 0 keeps a flat picture clear`() {
+        val pixels = IntArray(9) { grey(128) }
+        val out = OutlineFilter.filter(pixels, 3, 3, 0)
+        assertArrayEquals(IntArray(9) { clear }, out)
+    }
+
+    // Given any picture, When it is filtered with a threshold of -1,
+    // Then the call is refused with a message naming the threshold.
+    @Test
+    fun `a negative threshold is refused`() {
+        val pixels = IntArray(9) { grey(128) }
+        val e = assertThrows(IllegalArgumentException::class.java) {
+            OutlineFilter.filter(pixels, 3, 3, -1)
+        }
+        assertTrue(e.message?.contains("threshold") == true, "message was: ${e.message}")
     }
 }
