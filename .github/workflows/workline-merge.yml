@@ -19,10 +19,13 @@ on:
   pull_request_target: {types: [labeled, unlabeled, converted_to_draft]}
   issues: {types: [labeled, closed]}
   schedule: [{cron: "53 * * * *"}]
+  # By hand, and by the loop when `workline tick` lists the merge
+  # (docs/tick.md): a run as the hourly one, named `workline merge`.
+  workflow_dispatch:
 permissions: {}
 
 env:
-  WORKLINE_VERSION: v0.80.0          # a release of workline: update it to take a newer one (x-release-please-version)
+  WORKLINE_VERSION: v0.82.0          # a release of workline: update it to take a newer one (x-release-please-version)
 
 jobs:
   follow:
@@ -38,7 +41,7 @@ jobs:
       contains(github.event.issue.title, 'merge requests wait for a person''s yes again')
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    environment: workline-app       # the App's key: the default branch only (ADR-0044)
+    environment: workline-app       # the App's key: the default branch only
     permissions: {contents: write, pull-requests: read}
     steps:
       - id: app
