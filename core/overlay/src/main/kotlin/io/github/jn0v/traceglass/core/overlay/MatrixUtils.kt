@@ -59,6 +59,7 @@ object MatrixUtils {
      * Compose multiple matrices left-to-right: compose(A, B, C) = A * B * C
      */
     fun compose(vararg matrices: FloatArray): FloatArray {
+        if (matrices.isEmpty()) return identity()
         return matrices.reduce { acc, m -> multiply(acc, m) }
     }
 }
