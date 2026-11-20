@@ -9,5 +9,7 @@ interface SettingsRepository {
     suspend fun setBreakReminderIntervalMinutes(minutes: Int)
     suspend fun setPerspectiveCorrectionEnabled(enabled: Boolean)
     suspend fun setGridMode(mode: GridMode)
+    suspend fun setTimelapseIntervalSeconds(seconds: Int)
+    suspend fun setTimelapseFps(fps: Int)
     suspend fun setAutoStartTimelapse(enabled: Boolean)
 }
