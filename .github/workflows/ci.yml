@@ -69,6 +69,13 @@ jobs:
       - name: Build debug
         run: ./gradlew assembleDebug --no-daemon
 
+      - name: Upload debug APK
+        uses: actions/upload-artifact@v4.6.2
+        with:
+          name: traceglass-debug-apk
+          path: app/build/outputs/apk/debug/app-debug.apk
+          retention-days: 7
+
       - name: Build release
         run: ./gradlew assembleRelease --no-daemon
 
