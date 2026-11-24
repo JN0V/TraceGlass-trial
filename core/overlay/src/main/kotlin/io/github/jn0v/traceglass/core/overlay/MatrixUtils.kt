@@ -43,6 +43,8 @@ object MatrixUtils {
      * Multiply two 3x3 matrices: result = a * b
      */
     fun multiply(a: FloatArray, b: FloatArray): FloatArray {
+        require(a.size == 9) { "A matrix holds 9 numbers (3x3), but the left one has ${a.size}" }
+        require(b.size == 9) { "A matrix holds 9 numbers (3x3), but the right one has ${b.size}" }
         val r = FloatArray(9)
         for (row in 0..2) {
             for (col in 0..2) {
