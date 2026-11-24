@@ -7,7 +7,7 @@ object OutlineFilter {
 
     fun filter(pixels: IntArray, width: Int, height: Int, threshold: Int): IntArray {
         require(width > 0 && height > 0) { "width and height must be positive" }
-        require(pixels.size == width * height) { "pixels size ${pixels.size} != $width x $height" }
+        require(pixels.size.toLong() == width.toLong() * height.toLong()) { "pixels size ${pixels.size} != $width x $height" }
         require(threshold >= 0) { "threshold must not be negative: $threshold" }
         val limit = maxOf(threshold, 1)
         val lum = IntArray(pixels.size) { i ->
