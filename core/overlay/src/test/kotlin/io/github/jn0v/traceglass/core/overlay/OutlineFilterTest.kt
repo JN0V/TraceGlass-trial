@@ -89,4 +89,14 @@ class OutlineFilterTest {
         }
         assertTrue(e.message?.contains("threshold") == true, "message was: ${e.message}")
     }
+
+    // Given an empty pixel array, When the outline filter runs on 65536 by 65536 pixels,
+    // Then it is refused with an IllegalArgumentException naming the size.
+    @Test
+    fun `a size whose product overflows is refused`() {
+        val e = assertThrows(IllegalArgumentException::class.java) {
+            OutlineFilter.filter(IntArray(0), 65536, 65536, 10)
+        }
+        assertTrue(e.message?.contains("65536") == true, "message was: ${e.message}")
+    }
 }
