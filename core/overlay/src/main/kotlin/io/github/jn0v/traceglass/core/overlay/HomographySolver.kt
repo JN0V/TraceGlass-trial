@@ -378,6 +378,7 @@ object HomographySolver {
         cx: Float,
         cy: Float
     ): Float? {
+        if (!(f > 0f) || !f.isFinite()) return null
         if (assumedPaperCoords.size != 4 || detectedCorners.size != 4) return null
         val H = solveHomography(assumedPaperCoords, detectedCorners) ?: return null
         val fd = f.toDouble()
