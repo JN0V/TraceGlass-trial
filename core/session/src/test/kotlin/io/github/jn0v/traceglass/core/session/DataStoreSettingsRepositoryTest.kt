@@ -33,4 +33,26 @@ class DataStoreSettingsRepositoryTest {
         val second = DataStoreSettingsRepository(dataStore)
         assertEquals(GridMode.THIRDS, second.settingsData.first().gridMode)
     }
+
+    // Given a break interval of 0 minutes saved, When the settings are read, Then the interval is 5 minutes
+    @Test
+    fun `break interval of 0 minutes is read as 5`() = runTest {
+        val dataStore = PreferenceDataStoreFactory.create(scope = backgroundScope) {
+            File(tempDir, "interval_short.preferences_pb")
+        }
+        val repo = DataStoreSettingsRepository(dataStore)
+        repo.setBreakReminderIntervalMinutes(0)
+        assertEquals(5, repo.settingsData.first().breakReminderIntervalMinutes)
+    }
+
+    // Given a break interval of 500 minutes saved, When the settings are read, Then the interval is 60 minutes
+    @Test
+    fun `break interval of 500 minutes is read as 60`() = runTest {
+        val dataStore = PreferenceDataStoreFactory.create(scope = backgroundScope) {
+            File(tempDir, "interval_long.preferences_pb")
+        }
+        val repo = DataStoreSettingsRepository(dataStore)
+        repo.setBreakReminderIntervalMinutes(500)
+        assertEquals(60, repo.settingsData.first().breakReminderIntervalMinutes)
+    }
 }
