@@ -15,6 +15,7 @@ class FileSnapshotStorage(
     private val cachedCount = AtomicInteger(-1)
 
     override fun saveSnapshot(jpegData: ByteArray, index: Int): File {
+        require(index >= 0) { "snapshot number must not be negative: $index" }
         val file = File(timelapseDir, "snapshot_%04d.jpg".format(java.util.Locale.ROOT, index))
         val existed = file.exists()
         file.writeBytes(jpegData)
