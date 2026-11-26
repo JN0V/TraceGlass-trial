@@ -29,6 +29,8 @@ class SettingsViewModel(
                         breakReminderIntervalMinutes = data.breakReminderIntervalMinutes,
                         perspectiveCorrectionEnabled = data.perspectiveCorrectionEnabled,
                         gridMode = data.gridMode,
+                        timelapseIntervalSeconds = data.timelapseIntervalSeconds,
+                        timelapseFps = data.timelapseFps,
                         autoStartTimelapse = data.autoStartTimelapse
                     )
                 }
@@ -65,6 +67,14 @@ class SettingsViewModel(
         viewModelScope.launch {
             repository.setGridMode(mode)
         }
+    }
+
+    fun onTimelapseIntervalChanged(seconds: Int) {
+        viewModelScope.launch { repository.setTimelapseIntervalSeconds(seconds.coerceIn(1, 60)) }
+    }
+
+    fun onTimelapseFpsChanged(fps: Int) {
+        viewModelScope.launch { repository.setTimelapseFps(fps.coerceIn(1, 60)) }
     }
 
     fun onAutoStartTimelapseToggled(enabled: Boolean) {
